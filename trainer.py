@@ -1,0 +1,90 @@
+import os.path as osp
+
+import pytorch_lightning as pl
+import torch
+
+import config as cfg
+import data
+import model as md
+
+
+def train():
+    gpus = torch.cuda.device_count()
+    use_gpu = gpus > 0
+    strategy = 'ddp' if use_gpu else None
+    exp_model_name = 'BG_PLS'
+
+    logger = pl.loggers.TensorBoardLogger(
+        cfg.experiments_path, name=exp_model_name)
+
+    version_path = osp.join(
+        cfg.experiments_path, exp_model_name, 'version_' + str(logger.version))
+
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=version_path,
+                                                       save_top_k=1,
+                                                       monitor="ep_end/val_loss",
+                                                       mode='min')
+    early_stopping_callback = pl.callbacks.early_stopping.EarlyStopping(
+        monitor="ep_end/val_loss", mode="min", patience=20)
+
+    callbacks = [pl.callbacks.LearningRateMonitor(
+    ), checkpoint_callback, early_stopping_callback]
+
+    datamodule = data.PDBBindDataModule(root=cfg.data_path,
+                                        batch_size=cfg.batch_size,
+                                        num_workers=cfg.datamodule_num_worker,
+                                        only_pocket=True)
+
+    model = md.Model(
+        hidden_channels_pa=cfg.hidden_channels_pa,
+        hidden_channels_la=cfg.hidden_channels_la,
+        num_layers=cfg.num_layers,
+        dropout=cfg.p_dropout,
+        heads=cfg.heads,
+        hetero_aggr=cfg.hetero_aggr,
+        mlp_channels=cfg.mlp_channels,
+        lr=cfg.learning_rate,
+        weight_decay=cfg.weight_decay,
+        plot_path=version_path,
+        num_timesteps=cfg.num_timesteps)
+
+    nb_param_trainable = model.get_nb_parameters(only_trainable=True)
+    nb_param = model.get_nb_parameters(only_trainable=False)
+    logger.log_metrics(
+        {'nb_param_trainable': torch.tensor(nb_param_trainable)})
+    logger.log_metrics({'nb_param': torch.tensor(nb_param)})
+
+    if use_gpu:
+        trainer = pl.Trainer(accelerator='gpu',
+                             devices=gpus,
+                             strategy=strategy,
+                             callbacks=callbacks,
+                             max_epochs=cfg.nb_epochs,
+                             logger=logger,
+                             log_every_n_steps=2,
+                             num_sanity_val_steps=0)
+    else:
+        trainer = pl.Trainer(callbacks=callbacks,
+                             max_epochs=cfg.nb_epochs,
+                             logger=logger,
+                             log_every_n_steps=2,
+                             num_sanity_val_steps=0)
+
+    trainer.fit(model, datamodule)
+
+    group = torch.distributed.group.WORLD
+    best_model_path = checkpoint_callback.best_model_path
+    if gpus > 1:
+        list_bmp = gpus*[None]
+        torch.distributed.all_gather_object(
+            list_bmp, best_model_path,  group=group)
+        best_model_path = list_bmp[0]
+
+    print("Best Checkpoint path : ", best_model_path)
+    trained_model = md.Model.load_from_checkpoint(best_model_path)
+    trainer.test(trained_model, datamodule.casf_13_dataloader())
+    trainer.test(trained_model, datamodule.casf_16_dataloader())
+
+
+if __name__ == '__main__':
+    train()

@@ -1,0 +1,5 @@
+*.pyc
+obabel.err
+experiments/*
+data/processed/*
+data/test/*
