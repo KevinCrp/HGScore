@@ -23,4 +23,4 @@ RUN conda install pytorch-lightning=1.5.9 -c conda-forge -y
 RUN conda install -c conda-forge xorg-libxrender -y
 
 RUN pip install scipy matplotlib
-RUN pip install class-resolver
+RUN pip install class-resolver 
