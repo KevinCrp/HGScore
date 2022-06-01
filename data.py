@@ -12,18 +12,18 @@ import to_graph
 
 
 def save_graph(raw_path: str, processed_path: str,
+               only_pocket: bool = False,
                target: float = None, cluster: int = None,
-               pdb_id: str = None,
-               only_pocket: bool = False) -> str:
+               pdb_id: str = None) -> str:
     """Create a graph and save it
 
     Args:
         raw_path (str): Path to the directory containing raw files
         processed_path (str): Path where save the created garph
+        only_pocket (bool, optional): Use only the binding pocket or not. Defaults to False.
         target (float, optional): The target affinity. Defaults to None.
         cluster (int, optional): Cluster ID for ranking. Defaults to None.
         pdb_id (int, optional): PDB ID for casf output. Defaults to None.
-        only_pocket (bool, optional): Use only the binding pocket or not. Defaults to False.
 
     Returns:
         str: Path where the graph is saved
@@ -87,8 +87,8 @@ class PDBBindDataset(pyg.data.InMemoryDataset):
                                 'TMP_{}{}_data_{}.pt'.format(self.prefix,
                                                              self.stage, i))
             pdb_id = raw_path.split('/')[-1]
-            pool_args.append((raw_path, filename,
-                             self.df.loc[pdb_id]['target'], self.only_pocket))
+            pool_args.append((raw_path, filename, self.only_pocket,
+                             self.df.loc[pdb_id]['target']))
             i += 1
         pool = mp.Pool(cfg.preprocessing_nb_cpu)
         data_path_list = list(pool.starmap(save_graph, pool_args))
@@ -136,10 +136,10 @@ class CASFDataset(pyg.data.InMemoryDataset):
                                 'TMP_{}{}_data_{}.pt'.format(self.prefix,
                                                              self.year, i))
             pdb_id = raw_path.split('/')[-1]
-            pool_args.append((raw_path, filename,
+            pool_args.append((raw_path, filename, self.only_pocket,
                              self.df.loc[pdb_id]['target'],
                              self.df.loc[pdb_id]['cluster'],
-                             pdb_id, self.only_pocket))
+                             pdb_id))
             i += 1
         pool = mp.Pool(cfg.preprocessing_nb_cpu)
         data_path_list = list(pool.starmap(save_graph, pool_args))
