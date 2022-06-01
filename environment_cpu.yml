@@ -1,5 +1,6 @@
 name: env_bg_pls_cpu
 channels:
+  - pyg
   - pytorch
   - conda-forge
   - defaults
@@ -21,7 +22,7 @@ dependencies:
   - ca-certificates=2022.5.18.1=ha878542_0
   - cachetools=5.0.0=pyhd8ed1ab_0
   - cairo=1.16.0=h18b612c_1001
-  - certifi=2022.5.18.1=py38h578d9bd_0
+  - certifi=2022.5.18.1=py38h06a4308_0
   - cffi=1.15.0=py38hd667e15_1
   - chardet=3.0.4=py38h924ce5b_1008
   - charset-normalizer=2.0.4=pyhd3eb1b0_0
@@ -83,13 +84,14 @@ dependencies:
   - multidict=6.0.2=py38h0a891b7_1
   - ncurses=6.3=h7f8727e_2
   - nettle=3.7.3=hbbd107a_1
+  - networkx=2.7.1=pyhd3eb1b0_0
   - numexpr=2.8.1=py38h6abb31d_0
   - numpy=1.22.3=py38he7a7128_0
   - numpy-base=1.22.3=py38hf524024_0
   - oauthlib=3.2.0=pyhd8ed1ab_0
   - openbabel=3.1.1=py38hd2c4bc0_2
   - openh264=2.1.1=h4ff587b_0
-  - openssl=1.1.1o=h166bdaf_0
+  - openssl=1.1.1o=h7f8727e_0
   - packaging=21.3=pyhd3eb1b0_0
   - pandas=1.4.2=py38h295c915_0
   - pcre=8.45=h9c3ff4c_0
@@ -103,16 +105,22 @@ dependencies:
   - pycodestyle=2.8.0=pyhd3eb1b0_0
   - pycparser=2.21=pyhd3eb1b0_0
   - pydeprecate=0.3.2=pyhd8ed1ab_0
+  - pyg=2.0.4=py38_torch_1.11.0_cpu
   - pyjwt=2.4.0=pyhd8ed1ab_0
   - pyopenssl=22.0.0=pyhd3eb1b0_0
   - pyparsing=3.0.4=pyhd3eb1b0_0
   - pysocks=1.7.1=py38h06a4308_0
   - python=3.8.13=h12debd9_0
   - python-dateutil=2.8.2=pyhd3eb1b0_0
+  - python-louvain=0.15=pyhd3eb1b0_0
   - python_abi=3.8=2_cp38
   - pytorch=1.11.0=py3.8_cpu_0
+  - pytorch-cluster=1.6.0=py38_torch_1.11.0_cpu
   - pytorch-lightning=1.5.9=pyhd8ed1ab_0
   - pytorch-mutex=1.0=cpu
+  - pytorch-scatter=2.0.9=py38_torch_1.11.0_cpu
+  - pytorch-sparse=0.6.13=py38_torch_1.11.0_cpu
+  - pytorch-spline-conv=1.2.1=py38_torch_1.11.0_cpu
   - pytz=2021.3=pyhd3eb1b0_0
   - pyu2f=0.1.5=pyhd8ed1ab_0
   - pyyaml=6.0=py38h0a891b7_4
@@ -153,6 +161,7 @@ dependencies:
   - xorg-xextproto=7.3.0=h7f98852_1002
   - xorg-xproto=7.0.31=h7f98852_1007
   - xz=5.2.5=h7f8727e_1
+  - yacs=0.1.6=pyhd3eb1b0_1
   - yaml=0.2.5=h7f98852_2
   - yarl=1.7.2=py38h0a891b7_2
   - zipp=3.8.0=pyhd8ed1ab_0
@@ -166,6 +175,3 @@ dependencies:
     - kiwisolver==1.4.2
     - markupsafe==2.1.1
     - matplotlib==3.5.2
-    - torch-geometric==2.0.5
-    - torch-scatter==2.0.9
-    - torch-sparse==0.6.13
