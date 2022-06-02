@@ -89,8 +89,9 @@ class GATEConv(MessagePassing):
         return self.lin2(x_j) * alpha.unsqueeze(-1)
 
 
-class AFP_GATE_GRUConv(nn.Module):
+class AFP_GATE_GRUConv_IntraMol(nn.Module):
     """A layer gathering a GATEConv and a GRU layer. First step in attentive_fp atomic embedding
+       For intramolecular network
     """
 
     def __init__(self, in_channels: int, out_channels: int, dropout: float,
@@ -108,8 +109,8 @@ class AFP_GATE_GRUConv(nn.Module):
         super().__init__()
         self.dropout = dropout
         self.lin1 = Linear(in_channels, out_channels)
-        self.gat_conv = GATEConv(out_channels, out_channels, dropout=dropout,
-                                 edge_dim=edge_dim)
+        self.gate_conv = GATEConv(out_channels, out_channels, dropout=dropout,
+                                  edge_dim=edge_dim)
         self.gru = nn.GRUCell(out_channels, out_channels)
 
     def forward(self, x: torch.Tensor, edge_index: torch.Tensor,
@@ -125,14 +126,62 @@ class AFP_GATE_GRUConv(nn.Module):
             torch.Tensor: The new nodes attributes
         """
         x = F.leaky_relu_(self.lin1(x))
-        h = F.elu_(self.gat_conv(x, edge_index, edge_attr))
+        h = F.elu_(self.gate_conv(x, edge_index, edge_attr))
         h = F.dropout(h, p=self.dropout, training=self.training)
         x = self.gru(h, x)
         return x
 
 
-class AFP_GATGRUConv(nn.Module):
+class AFP_GATE_GRUConv_InterMol(nn.Module):
+    """A layer gathering a GATEConv and a GRU layer. First step in attentive_fp atomic embedding
+       For intermolecular network
+    """
+
+    def __init__(self, in_channels: Tuple[int], out_channels: int, dropout: float,
+                 edge_dim: int, heads: int = 1, add_self_loops: bool = False):
+        """Construct a GATE_GRUConv layer
+
+        Args:
+            in_channels (Tuple[int]): The input channel sizes
+            out_channels (int): The output channels size
+            dropout (float): The dropout rate
+            edge_dim (int): The edge dimension
+            heads (int, optional): Number of heads for the GATEConv part. Defaults to 1.
+            add_self_loops (bool, optional): Add self loops. Defaults to False.
+        """
+        super().__init__()
+        self.dropout = dropout
+        in_channels_src, in_channels_dst = in_channels
+        self.lin1_src = Linear(in_channels_src, out_channels)
+        self.lin1_dst = Linear(in_channels_dst, out_channels)
+        self.gate_conv = GATEConv(out_channels, out_channels, dropout=dropout,
+                                  edge_dim=edge_dim)
+        self.gru = nn.GRUCell(out_channels, out_channels)
+
+    def forward(self, x: Tuple[torch.Tensor], edge_index: torch.Tensor,
+                edge_attr: torch.Tensor) -> torch.Tensor:
+        """Process data graph through the layer
+
+        Args:
+            x (Tuple[torch.Tensor]): Nodes features
+            edge_index (torch.Tensor): Edge index
+            edge_attr (torch.Tensor): Edge attributes 
+
+        Returns:
+            torch.Tensor: The new nodes attributes
+        """
+        x_src, x_dst = x
+        x_src = F.leaky_relu_(self.lin1_src(x_src))
+        x_dst = F.leaky_relu_(self.lin1_dst(x_dst))
+        h = F.elu_(self.gate_conv((x_src, x_dst), edge_index, edge_attr))
+        h = F.dropout(h, p=self.dropout, training=self.training)
+        x_dst = self.gru(h, x_dst)
+        return x_dst
+
+
+class AFP_GATGRUConv_IntraMol(nn.Module):
     """A layer gathering a GATConv and a GRU layer. Following step in attentive_fp atomic embedding
+       For intramolecular network
     """
 
     def __init__(self, in_channels: int, out_channels_gat: int,
@@ -173,6 +222,52 @@ class AFP_GATGRUConv(nn.Module):
         h = F.dropout(h, p=self.dropout, training=self.training)
         x = self.gru(h, x)
         return x
+
+
+class AFP_GATGRUConv_InterMol(nn.Module):
+    """A layer gathering a GATConv and a GRU layer. Following step in attentive_fp atomic embedding
+       For intermolecular network
+    """
+
+    def __init__(self, in_channels: Tuple[int], out_channels_gat: int,
+                 out_channels_gru: int, dropout: float, edge_dim: int,
+                 heads: int = 1, add_self_loops: bool = False):
+        """Construct a GATGruConv layer
+
+        Args:
+            in_channels (Tuple[int]): Input channels sizes
+            out_channels_gat (int): GATConv outpout channels size (GRY input size)
+            out_channels_gru (int): output channels size
+            dropout (float): Dropout rate
+            edge_dim (int): Edge dimension
+            heads (int, optional): NUmber of heads for the GATConv part. Defaults to 1.
+            add_self_loops (bool, optional): Add self loops. Defaults to False.
+        """
+        super().__init__()
+        self.dropout = dropout
+        self.gat_conv = pyg.nn.GATConv(in_channels, out_channels_gat,
+                                       dropout=dropout,
+                                       edge_dim=edge_dim,
+                                       add_self_loops=add_self_loops,
+                                       heads=heads)
+        self.gru = nn.GRUCell(out_channels_gru, out_channels_gru)
+
+    def forward(self, x: torch.Tensor,
+                edge_index: torch.Tensor) -> torch.Tensor:
+        """Process data graph through the layer
+
+        Args:
+            x (torch.Tensor): Nodes features
+            edge_index (torch.Tensor): Edge index 
+
+        Returns:
+            torch.Tensor: The new nodes attributes
+        """
+        x_src, x_dst = x
+        h = F.elu_(self.gat_conv((x_src, x_dst), edge_index))
+        h = F.dropout(h, p=self.dropout, training=self.training)
+        x_dst = self.gru(h, x_dst)
+        return x_dst
 
 
 class AFP_GATGRUConvMol(nn.Module):
@@ -247,7 +342,7 @@ def molecular_pooling(x_dict: Dict, edge_index_dict: Dict,
 
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: Dictionnary with added molecular fingerprint
-    """    
+    """
     x, edge_index = molecular_embedding(
         x_dict['protein_atoms'], batch['protein_atoms'])
     x_dict['pa_embedding'] = x
