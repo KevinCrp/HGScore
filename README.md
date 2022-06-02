@@ -1,4 +1,4 @@
-# Bipartite Graph for Protein-Ligand Scoring
+# Bipartite Graph Convolutional Network for Protein-Ligand Scoring
 
 ## Usage
 
