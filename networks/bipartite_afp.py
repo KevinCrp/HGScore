@@ -2,9 +2,12 @@ from typing import Dict, List, Tuple
 
 import torch
 import torch_geometric as pyg
-from layers.bipartite_afp_layers import (AFP_GATE_GRUConv, AFP_GATGRUConv,
+from layers.bipartite_afp_layers import (AFP_GATE_GRUConv_IntraMol,
+                                         AFP_GATE_GRUConv_InterMol,
+                                         AFP_GATGRUConv_IntraMol,
+                                         AFP_GATGRUConv_InterMol,
                                          AFP_GATGRUConvMol, molecular_pooling)
-from torch_geometric.nn import GATConv, HeteroConv
+from torch_geometric.nn import HeteroConv
 
 NB_ATOM_FTS = 35
 
@@ -28,20 +31,20 @@ def get_het_conv_first_layer(hidden_channels_pa: int,
     gatconv_hidden_channels_pa = hidden_channels_pa // heads
     gatconv_hidden_channels_la = hidden_channels_la // heads
 
-    conv_dict[('protein_atoms', 'linked_to', 'protein_atoms')] = AFP_GATE_GRUConv(
+    conv_dict[('protein_atoms', 'linked_to', 'protein_atoms')] = AFP_GATE_GRUConv_IntraMol(
         NB_ATOM_FTS, hidden_channels_pa, edge_dim=6, heads=heads,
         dropout=dropout, add_self_loops=False)
 
-    conv_dict[('ligand_atoms', 'linked_to', 'ligand_atoms')] = AFP_GATE_GRUConv(
+    conv_dict[('ligand_atoms', 'linked_to', 'ligand_atoms')] = AFP_GATE_GRUConv_IntraMol(
         NB_ATOM_FTS, hidden_channels_la, edge_dim=6, heads=heads,
         dropout=dropout, add_self_loops=False)
 
-    conv_dict[('ligand_atoms', 'interact_with', 'protein_atoms')] = GATConv(
-        (NB_ATOM_FTS, NB_ATOM_FTS), gatconv_hidden_channels_pa, edge_dim=1,
+    conv_dict[('ligand_atoms', 'interact_with', 'protein_atoms')] = AFP_GATE_GRUConv_InterMol(
+        (NB_ATOM_FTS, NB_ATOM_FTS), hidden_channels_pa, edge_dim=1,
         heads=heads, dropout=dropout, add_self_loops=False)
 
-    conv_dict[('protein_atoms', 'interact_with', 'ligand_atoms')] = GATConv(
-        (NB_ATOM_FTS, NB_ATOM_FTS), gatconv_hidden_channels_la, edge_dim=1,
+    conv_dict[('protein_atoms', 'interact_with', 'ligand_atoms')] = AFP_GATE_GRUConv_InterMol(
+        (NB_ATOM_FTS, NB_ATOM_FTS), hidden_channels_la, edge_dim=1,
         heads=heads, dropout=dropout, add_self_loops=False)
     return conv_dict
 
@@ -65,21 +68,23 @@ def get_het_conv_layer(hidden_channels_pa: int,
     gatconv_hidden_channels_pa = hidden_channels_pa // heads
     gatconv_hidden_channels_la = hidden_channels_la // heads
 
-    conv_dict[('protein_atoms', 'linked_to', 'protein_atoms')] = AFP_GATGRUConv(
+    conv_dict[('protein_atoms', 'linked_to', 'protein_atoms')] = AFP_GATGRUConv_IntraMol(
         hidden_channels_pa, gatconv_hidden_channels_pa, hidden_channels_pa,
         edge_dim=None, heads=heads, dropout=dropout, add_self_loops=False)
 
-    conv_dict[('ligand_atoms', 'linked_to', 'ligand_atoms')] = AFP_GATGRUConv(
+    conv_dict[('ligand_atoms', 'linked_to', 'ligand_atoms')] = AFP_GATGRUConv_IntraMol(
         hidden_channels_la, gatconv_hidden_channels_la, hidden_channels_la,
         edge_dim=None, heads=heads, dropout=dropout, add_self_loops=False)
 
-    conv_dict[('ligand_atoms', 'interact_with', 'protein_atoms')] = GATConv(
-        (hidden_channels_la, hidden_channels_pa), gatconv_hidden_channels_pa,
-        edge_dim=1, heads=heads, dropout=dropout, add_self_loops=False)
+    conv_dict[('ligand_atoms', 'interact_with', 'protein_atoms')] = AFP_GATGRUConv_InterMol(
+        (hidden_channels_la,
+         hidden_channels_pa), gatconv_hidden_channels_pa, hidden_channels_pa,
+        edge_dim=None, heads=heads, dropout=dropout, add_self_loops=False)
 
-    conv_dict[('protein_atoms', 'interact_with', 'ligand_atoms')] = GATConv(
-        (hidden_channels_pa, hidden_channels_la), gatconv_hidden_channels_la,
-        edge_dim=1, heads=heads, dropout=dropout, add_self_loops=False)
+    conv_dict[('protein_atoms', 'interact_with', 'ligand_atoms')] = AFP_GATGRUConv_InterMol(
+        (hidden_channels_pa,
+         hidden_channels_la), gatconv_hidden_channels_la, hidden_channels_la,
+        edge_dim=None, heads=heads, dropout=dropout, add_self_loops=False)
     return conv_dict
 
 
@@ -138,7 +143,7 @@ class HeteroAFP_Atomic(torch.nn.Module):
             ('ligand_atoms', 'interact_with', 'protein_atoms'),
             ('protein_atoms', 'interact_with', 'ligand_atoms')]}
         for conv in self.conv_list[1:]:
-            x_dict = conv(x, edge_index, edge_attr)
+            x_dict = conv(x, edge_index)
             x = {key: x.relu() for key, x in x_dict.items()}
         return x
 
@@ -194,14 +199,15 @@ class AFP_Hetero_Molecular(torch.nn.Module):
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: The molecular embedding of (protein, ligand)
         """
-        y_pa = y_la = None
         for t in range(self.num_timesteps):
-            y_pa = self.gcn_pa(x_dict['protein_atoms'], x_dict['pa_embedding'],
-                               edge_index_dict['pa_embedding'])
-            y_la = self.gcn_la(x_dict['ligand_atoms'], x_dict['la_embedding'],
-                               edge_index_dict['la_embedding'])
-        y_pa = self.lin_pa(y_pa)
-        y_la = self.lin_la(y_la)
+            x_dict['pa_embedding'] = self.gcn_pa(x_dict['protein_atoms'],
+                                                 x_dict['pa_embedding'],
+                                                 edge_index_dict['pa_embedding'])
+            x_dict['la_embedding'] = self.gcn_la(x_dict['ligand_atoms'],
+                                                 x_dict['la_embedding'],
+                                                 edge_index_dict['la_embedding'])
+        y_pa = self.lin_pa(x_dict['pa_embedding'])
+        y_la = self.lin_la(x_dict['la_embedding'])
         return y_pa, y_la
 
 

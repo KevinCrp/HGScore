@@ -94,7 +94,7 @@ if __name__ == '__main__':
             csv_score_path=csv_13_path,
             do_plot=args.plot, plot_path=plot_13_path)
         print("\tScoring Power:")
-        print("\t\tRp {}".format(round(rp, 2)))
+        print("\t\tRp {}".format(round(rp, 3)))
         print("\t\tSD {}".format(round(sd, 2)))
         print("\t\tNb Favorable {}".format(nb))
         print("\t\tMAE {}".format(round(mae, 2)))
@@ -117,7 +117,7 @@ if __name__ == '__main__':
             do_plot=args.plot, plot_path=plot_16_path)
 
         print("\tScoring Power:")
-        print("\t\tRp {}".format(round(rp, 2)))
+        print("\t\tRp {}".format(round(rp, 3)))
         print("\t\tSD {}".format(round(sd, 2)))
         print("\t\tNb Favorable {}".format(nb))
         print("\t\tMAE {}".format(round(mae, 2)))
