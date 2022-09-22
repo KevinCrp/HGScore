@@ -11,7 +11,12 @@ python split_pdbbind.py
 4. Now in *data/* there are four csv files (*[train|val|casf13|casf16].csv*)
 5. Use `data.py` to create all graphs
 ````bash
-python data.py
+usage: data.py [-h] [-cutoff CUTOFF]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -cutoff CUTOFF, -c CUTOFF
+                        If not set, config.py atomic_distance_cutoff is used
 ````
 6. Change model hyperparameters in `config.py`
 7. Launch the training 
