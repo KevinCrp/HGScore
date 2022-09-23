@@ -1,28 +1,25 @@
 import argparse
 import os.path as osp
 import sys
-import torch
 
 import torch_geometric as pyg
 
+import config as cfg
 import model as md
-from to_graph import clean_pdb, create_pyg_graph
+from data import clean_pdb, create_pyg_graph
 
 
-def make_bipartite_graph(protein_path: str, ligand_path: str) -> pyg.data.HeteroData:
-    protein_dir, clean_protein_path = osp.split(protein_path)
-    clean_protein_path = 'clean_'+clean_protein_path
+def make_bipartite_graph(protein_path: str,
+                         ligand_path: str) -> pyg.data.HeteroData:
+    protein_dir, protein_path = osp.split(protein_path)
+    clean_protein_path = 'clean_' + protein_path
     clean_protein_path = osp.join(protein_dir, clean_protein_path)
     if not osp.exists(clean_protein_path):
         clean_pdb(protein_path, clean_protein_path)
-    bipartite_graph = create_pyg_graph(clean_protein_path, ligand_path)
+    bipartite_graph = create_pyg_graph(clean_protein_path, ligand_path,
+                                       cutoff=cfg.atomic_distance_cutoff)
     return bipartite_graph
 
-def predict(model: torch.nn.Module, data: pyg.data.Batch) -> float:
-    model.eval()
-    with torch.no_grad():
-        score = model(batch)
-    return score[0].item()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -50,7 +47,6 @@ if __name__ == '__main__':
 
     model = md.Model.load_from_checkpoint(model_path)
 
-    score = predict(model, batch)
+    score = model.predict(batch)
 
     print("Score = {}".format(round(score, 2)))
-    
