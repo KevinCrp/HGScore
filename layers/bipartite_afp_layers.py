@@ -7,6 +7,8 @@ import torch.nn.functional as F
 import torch_geometric as pyg
 from torch import Tensor
 from torch.nn import Linear, Parameter
+from torch_geometric.nn import \
+    GATv2Conv as GATConv  # import GATConv or GATv2Conv
 from torch_geometric.nn import MessagePassing
 from torch_geometric.typing import Adj, OptTensor
 from torch_geometric.utils import softmax
@@ -52,6 +54,8 @@ class GATEConv(MessagePassing):
         super().__init__(aggr='add', node_dim=0)
 
         self.dropout = dropout
+        self.in_channels = in_channels
+        self.out_channels = out_channels
 
         self.att_l = Parameter(torch.Tensor(1, out_channels))
         self.att_r = Parameter(torch.Tensor(1, in_channels))
@@ -88,6 +92,9 @@ class GATEConv(MessagePassing):
         alpha = F.dropout(alpha, p=self.dropout, training=self.training)
         return self.lin2(x_j) * alpha.unsqueeze(-1)
 
+    def __repr__(self):
+        return "GATEConv({}, {})".format(self.in_channels, self.out_channels)
+
 
 class AFP_GATE_GRUConv_IntraMol(nn.Module):
     """A layer gathering a GATEConv and a GRU layer. First step in attentive_fp atomic embedding
@@ -95,7 +102,7 @@ class AFP_GATE_GRUConv_IntraMol(nn.Module):
     """
 
     def __init__(self, in_channels: int, out_channels: int, dropout: float,
-                 edge_dim: int, heads: int = 1, add_self_loops: bool = False):
+                 edge_dim: int):
         """Construct a GATE_GRUConv layer
 
         Args:
@@ -103,8 +110,6 @@ class AFP_GATE_GRUConv_IntraMol(nn.Module):
             out_channels (int): The output channels size
             dropout (float): The dropout rate
             edge_dim (int): The edge dimension
-            heads (int, optional): Number of heads for the GATEConv part. Defaults to 1.
-            add_self_loops (bool, optional): Add self loops. Defaults to False.
         """
         super().__init__()
         self.dropout = dropout
@@ -113,6 +118,13 @@ class AFP_GATE_GRUConv_IntraMol(nn.Module):
                                   edge_dim=edge_dim)
         self.gru = nn.GRUCell(out_channels, out_channels)
 
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        # GATEConv's weights and biais are already initialized
+        glorot(self.lin1.weight)
+        zeros(self.lin1.bias)
+
     def forward(self, x: torch.Tensor, edge_index: torch.Tensor,
                 edge_attr: torch.Tensor) -> torch.Tensor:
         """Process data graph through the layer
@@ -120,7 +132,7 @@ class AFP_GATE_GRUConv_IntraMol(nn.Module):
         Args:
             x (torch.Tensor): Nodes features
             edge_index (torch.Tensor): Edge index
-            edge_attr (torch.Tensor): Edge attributes 
+            edge_attr (torch.Tensor): Edge attributes
 
         Returns:
             torch.Tensor: The new nodes attributes
@@ -138,7 +150,7 @@ class AFP_GATE_GRUConv_InterMol(nn.Module):
     """
 
     def __init__(self, in_channels: Tuple[int], out_channels: int, dropout: float,
-                 edge_dim: int, heads: int = 1, add_self_loops: bool = False):
+                 edge_dim: int):
         """Construct a GATE_GRUConv layer
 
         Args:
@@ -146,8 +158,6 @@ class AFP_GATE_GRUConv_InterMol(nn.Module):
             out_channels (int): The output channels size
             dropout (float): The dropout rate
             edge_dim (int): The edge dimension
-            heads (int, optional): Number of heads for the GATEConv part. Defaults to 1.
-            add_self_loops (bool, optional): Add self loops. Defaults to False.
         """
         super().__init__()
         self.dropout = dropout
@@ -157,6 +167,14 @@ class AFP_GATE_GRUConv_InterMol(nn.Module):
         self.gate_conv = GATEConv(out_channels, out_channels, dropout=dropout,
                                   edge_dim=edge_dim)
         self.gru = nn.GRUCell(out_channels, out_channels)
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        # GATEConv's weights and biais are already initialized
+        glorot(self.lin1_src.weight)
+        glorot(self.lin1_dst.weight)
+        zeros(self.lin1_src.bias)
+        zeros(self.lin1_dst.bias)
 
     def forward(self, x: Tuple[torch.Tensor], edge_index: torch.Tensor,
                 edge_attr: torch.Tensor) -> torch.Tensor:
@@ -165,7 +183,7 @@ class AFP_GATE_GRUConv_InterMol(nn.Module):
         Args:
             x (Tuple[torch.Tensor]): Nodes features
             edge_index (torch.Tensor): Edge index
-            edge_attr (torch.Tensor): Edge attributes 
+            edge_attr (torch.Tensor): Edge attributes
 
         Returns:
             torch.Tensor: The new nodes attributes
@@ -200,12 +218,19 @@ class AFP_GATGRUConv_IntraMol(nn.Module):
         """
         super().__init__()
         self.dropout = dropout
-        self.gat_conv = pyg.nn.GATConv(in_channels, out_channels_gat,
-                                       dropout=dropout,
-                                       edge_dim=edge_dim,
-                                       add_self_loops=add_self_loops,
-                                       heads=heads)
-        self.gru = nn.GRUCell(out_channels_gru, out_channels_gru)
+        self.lin1 = Linear(in_channels, out_channels_gat)
+        self.gat_conv = GATConv(out_channels_gat, out_channels_gat,
+                                dropout=dropout,
+                                edge_dim=edge_dim,
+                                add_self_loops=add_self_loops,
+                                heads=heads)
+        self.gru = nn.GRUCell(out_channels_gat * heads, out_channels_gru)
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        # GATConv's weights and biais are already initialized
+        glorot(self.lin1.weight)
+        zeros(self.lin1.bias)
 
     def forward(self, x: torch.Tensor,
                 edge_index: torch.Tensor) -> torch.Tensor:
@@ -213,11 +238,12 @@ class AFP_GATGRUConv_IntraMol(nn.Module):
 
         Args:
             x (torch.Tensor): Nodes features
-            edge_index (torch.Tensor): Edge index 
+            edge_index (torch.Tensor): Edge index
 
         Returns:
             torch.Tensor: The new nodes attributes
         """
+        x = F.leaky_relu_(self.lin1(x))
         h = F.elu_(self.gat_conv(x, edge_index))
         h = F.dropout(h, p=self.dropout, training=self.training)
         x = self.gru(h, x)
@@ -245,12 +271,23 @@ class AFP_GATGRUConv_InterMol(nn.Module):
         """
         super().__init__()
         self.dropout = dropout
-        self.gat_conv = pyg.nn.GATConv(in_channels, out_channels_gat,
-                                       dropout=dropout,
-                                       edge_dim=edge_dim,
-                                       add_self_loops=add_self_loops,
-                                       heads=heads)
-        self.gru = nn.GRUCell(out_channels_gru, out_channels_gru)
+        in_channels_src, in_channels_dst = in_channels
+        self.lin1_src = Linear(in_channels_src, out_channels_gat)
+        self.lin1_dst = Linear(in_channels_dst, out_channels_gat)
+        self.gat_conv = GATConv(out_channels_gat, out_channels_gat,
+                                dropout=dropout,
+                                edge_dim=edge_dim,
+                                add_self_loops=add_self_loops,
+                                heads=heads)
+        self.gru = nn.GRUCell(out_channels_gat * heads, out_channels_gru)
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        # GATConv's weights and biais are already initialized
+        glorot(self.lin1_src.weight)
+        glorot(self.lin1_dst.weight)
+        zeros(self.lin1_src.bias)
+        zeros(self.lin1_dst.bias)
 
     def forward(self, x: torch.Tensor,
                 edge_index: torch.Tensor) -> torch.Tensor:
@@ -258,12 +295,14 @@ class AFP_GATGRUConv_InterMol(nn.Module):
 
         Args:
             x (torch.Tensor): Nodes features
-            edge_index (torch.Tensor): Edge index 
+            edge_index (torch.Tensor): Edge index
 
         Returns:
             torch.Tensor: The new nodes attributes
         """
         x_src, x_dst = x
+        x_src = F.leaky_relu_(self.lin1_src(x_src))
+        x_dst = F.leaky_relu_(self.lin1_dst(x_dst))
         h = F.elu_(self.gat_conv((x_src, x_dst), edge_index))
         h = F.dropout(h, p=self.dropout, training=self.training)
         x_dst = self.gru(h, x_dst)
@@ -290,9 +329,13 @@ class AFP_GATGRUConvMol(nn.Module):
         """
         super().__init__()
         self.dropout = dropout
-        self.gat_conv = pyg.nn.GATConv(in_channels, out_channels_gat, dropout=dropout,
-                                       edge_dim=edge_dim, add_self_loops=add_self_loops, heads=heads)
-        self.gru = nn.GRUCell(out_channels_gru, out_channels_gru)
+        self.gat_conv = GATConv(in_channels,
+                                out_channels_gat,
+                                dropout=dropout,
+                                edge_dim=edge_dim,
+                                add_self_loops=add_self_loops,
+                                heads=heads)
+        self.gru = nn.GRUCell(out_channels_gat * heads, out_channels_gru)
 
     def forward(self, x: torch.Tensor, out: torch.Tensor,
                 edge_index: torch.Tensor) -> torch.Tensor:
