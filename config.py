@@ -3,6 +3,7 @@ import os.path as osp
 
 root_path = osp.dirname(osp.realpath(__file__))
 data_use_only_pocket = True
+atomic_distance_cutoff = 4.0
 
 # Change this line is necessary
 data_path = osp.join(root_path, 'data')
@@ -35,4 +36,4 @@ weight_decay = 1e-4
 
 nb_epochs = 150
 batch_size = 64
-datamodule_num_worker = 2
+datamodule_num_worker = 80
