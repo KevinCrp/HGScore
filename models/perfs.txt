@@ -1,0 +1,22 @@
+CASF 2013
+        Scoring Power:
+                Rp 0.757
+                SD 1.47
+                Nb Favorable 195.0
+                MAE 1.16
+                RMSE 1.47
+        Ranking Power:
+                Rho 0.63
+                Tau 0.57
+                PI 0.62
+CASF 2016
+        Scoring Power:
+                Rp 0.836
+                SD 1.19
+                Nb Favorable 285.0
+                MAE 0.95
+                RMSE 1.19
+        Ranking Power:
+                Rho 0.69
+                Tau 0.61
+                PI 0.7
