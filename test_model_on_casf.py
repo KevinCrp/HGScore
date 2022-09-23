@@ -2,8 +2,10 @@ import argparse
 import os.path as osp
 from typing import Tuple
 
+import pandas as pd
 import torch
 import torch_geometric as pyg
+import tqdm
 
 import config as cfg
 import data
@@ -20,38 +22,41 @@ def predict_on_CASF(model: torch.nn.Module, dataloader: pyg.loader.DataLoader,
                                                           float, float, float,
                                                           float, float, float,
                                                           float]:
-    """Predict score on the CASF (PDBBind core) set and returns scoring and ranking powers metrics
+    """Predict score on the CASF (PDBBind core) set and returns scoring and
+        ranking powers metrics
 
     Args:
         model (torch.nn.Module): The model
         dataloader (pyg.loader.DataLoader): A dataloader
-        nb_in_cluster_ranking (int): The number if items in each cluster (v13 : 3; v16 : 5)
+        nb_in_cluster_ranking (int): The number if items in each
+            cluster (v13 : 3; v16 : 5)
         csv_score_path (str): Path where save csv scores
         do_plot (bool, optional): Do plot. Defaults to False.
         plot_path (str, optional): Where save plot. Defaults to 'plot.png'.
 
     Returns:
-        Tuple[float, float, float, float, float, float, float, float]: rp, sd, nb, mae, rmse, sp, ke, pi
+        Tuple[float, float, float, float, float, float, float, float]: rp,
+            sd, nb, mae, rmse, sp, ke, pi
     """
-    model.eval()
-    target = []
-    pred = []
-    cluster = []
+    preds = []
+    targets = []
+    clusters = []
     pdb_id = []
-    for data in dataloader:
-        y_pred = model(data)
-        target += [data.y]
-        pred += [y_pred]
-        cluster += [data.cluster]
-        pdb_id += [data.pdb_id]
-    pred = torch.tensor(pred)
-    target = torch.tensor(target)
-    cluster = torch.tensor(cluster)
-    rp, sd, nb, mae, rmse = scoring_power_pt(pred, target)
-    sp, ke, pi = ranking_power_pt(pred, target, nb_in_cluster_ranking, cluster)
-    plotters.save_predictions(pdb_id, pred, csv_score_path)
+    for d in tqdm.tqdm(dataloader):
+        preds += [model.predict(d)]
+        targets += [d.y]
+        clusters += [d.cluster]
+        pdb_id += [d.pdb_id]
+    preds = torch.tensor(preds)
+    targets = torch.tensor(targets)
+    clusters = torch.tensor(clusters)
+
+    rp, sd, nb, mae, rmse = scoring_power_pt(preds, targets)
+    sp, ke, pi = ranking_power_pt(
+        preds, targets, nb_in_cluster_ranking, clusters)
+    plotters.save_predictions(pdb_id, preds, csv_score_path)
     if do_plot:
-        plotters.plot_linear_reg(pred, target, rp, sd, plot_path)
+        plotters.plot_linear_reg(preds, targets, rp, sd, plot_path)
     return rp, sd, nb, mae, rmse, sp, ke, pi
 
 
@@ -85,6 +90,7 @@ if __name__ == '__main__':
     if args.casf_13:
         print("CASF 2013 Testing ...")
         dt_casf13 = data.CASFDataset(root=cfg.data_path, year='13',
+                                     atomic_distance_cutoff=cfg.atomic_distance_cutoff,
                                      only_pocket=cfg.data_use_only_pocket)
         dl_casf13 = pyg.loader.DataLoader(dt_casf13,
                                           batch_size=1,
@@ -107,6 +113,7 @@ if __name__ == '__main__':
     if args.casf_16:
         print("CASF 2016 Testing ...")
         dt_casf16 = data.CASFDataset(root=cfg.data_path, year='16',
+                                     atomic_distance_cutoff=cfg.atomic_distance_cutoff,
                                      only_pocket=cfg.data_use_only_pocket)
         dl_casf16 = pyg.loader.DataLoader(dt_casf16,
                                           batch_size=1,

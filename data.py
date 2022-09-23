@@ -254,45 +254,6 @@ class CASFDataset(pyg.data.InMemoryDataset):
         torch.save((data, slices), self.processed_paths[0])
 
 
-def process_graph_for_docking_power(raw_path_protein: str,
-                                    raw_path_ligand: str,
-                                    processed_filename: str,
-                                    atomic_distance_cutoff: float,
-                                    only_pocket: bool = False,
-                                    pdb_id: str = None,
-                                    rmsd: float = 0.0,
-                                    decoy_id: str = None) -> str:
-    """Create a graph from PDBs
-
-    Args:
-        raw_path_protein (str): Path to the protein file (PDB), without ext
-        raw_path_ligand (str): Path to the lgand file (MOL2).
-        processed_filename (str): Path to the processed file.
-        atomic_distance_cutoff (float): Cutoff for inter-atomic distance.
-        only_pocket (bool, optional): Use only the binding pocket or not. Defaults to False.
-        pdb_id (int, optional): PDB ID for casf output. Defaults to None.
-        rmsd (float, optional): Used for docking power. Defaults to 0.0.
-        decoy_id (str, optional): Contains the ligand id for docking power. Defaults to None.
-
-    Returns:
-        str: Path where the graph is saved
-    """
-    protein_path = osp.join(
-        raw_path_protein, pdb_id + '_pocket.pdb') if only_pocket else osp.join(raw_path_protein, pdb_id + '_protein.pdb')
-    protein_path_clean = osp.join(
-        raw_path_protein, pdb_id + '_pocket_clean.pdb') if only_pocket else osp.join(raw_path_protein, pdb_id + '_protein_clean.pdb')
-    if not osp.isfile(protein_path_clean):
-        clean_pdb(protein_path, protein_path_clean)
-    g = create_pyg_graph(protein_path=protein_path_clean,
-                         ligand_path=raw_path_ligand,
-                         pdb_id=pdb_id,
-                         cutoff=atomic_distance_cutoff,
-                         rmsd=rmsd,
-                         decoy_id=decoy_id)
-    torch.save(g, processed_filename)
-    return processed_filename
-
-
 class PDBBindDataModule(pl.LightningDataModule):
     """PyTorch Lightning Datamodule
     """
