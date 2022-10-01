@@ -20,3 +20,20 @@ CASF 16
                 Rho 0.63
                 Tau 0.56
                 PI 0.65
+        Docking Power:
+        DP cutoff: 2.0
+                Sp2 0.135
+                Sp3 0.172
+                Sp4 0.198
+                Sp5 0.221
+                Sp6 0.228
+                Sp7 0.234
+                Sp8 0.243
+                Sp9 0.257
+                Sp10 0.262
+                TOP1
+                        Success 105 ; Success Rate 36.84210526315789
+                TOP2
+                        Success 144 ; Success Rate 50.526315789473685
+                TOP3
+                        Success 177 ; Success Rate 62.10526315789474
