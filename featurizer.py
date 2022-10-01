@@ -90,6 +90,23 @@ def atom_hyb_one_hot(hyb: int) -> List[int]:
     return oh_hyb
 
 
+def atom_degree_one_hot(degree: int) -> List[int]:
+    """"Returns the one-hot encoded atom heavy/hetero [0, 1, 2, 3, 4, 5, 6+]
+
+    Args:
+        degree (int): The Hetero/Heavy degree
+
+    Returns:
+        List[int]: The one-hot encoded degree
+    """
+    oh_degree = 7 * [0]
+    if degree > 6:
+        oh_degree[6] = 1
+    else:
+        oh_degree[degree] = 1
+    return oh_degree
+
+
 def get_bond_properties(bond: openbabel.OBBond) -> List:
     """Returns bond properties:
      * The bond length
@@ -111,8 +128,6 @@ def get_bond_properties(bond: openbabel.OBBond) -> List:
     aromatic = bond.IsAromatic()
     ring = bond.IsInRing()
     return [length, aromatic, ring, order == 1, order == 2, order == 3]
-
-# get_molecule_atomic_properties
 
 
 def get_molecule_properties(mol: Molecule) -> Tuple[List, List, List, List]:
@@ -148,26 +163,20 @@ def get_molecule_properties(mol: Molecule) -> Tuple[List, List, List, List]:
     list_atom_hetero_degree = []
     for atom in mol:
         ob_atom = atom.OBAtom
-        list_atom_heavy_degree += [[ob_atom.GetHvyDegree()]]
-        list_atom_hetero_degree += [[ob_atom.GetHeteroDegree()]]
+        list_atom_heavy_degree += [atom_degree_one_hot(ob_atom.GetHvyDegree())]
+        list_atom_hetero_degree += [atom_degree_one_hot(ob_atom.GetHeteroDegree())]
 
     array_atom_heavy_degree = np.array(list_atom_heavy_degree)
     array_atom_hetero_degree = np.array(list_atom_hetero_degree)
 
     atom_properties_list = np.concatenate((oh_atom_type, oh_hybridization,
-                                           partial_charge, hydrophobic, isaromatic,
+                                           partial_charge, hydrophobic,
                                            isaromatic, isacceptor, isdonor,
                                            isdonorh, ismetal, isminus, isplus,
                                            ishalogen, array_atom_heavy_degree,
                                            array_atom_hetero_degree), axis=1).tolist()
-    # atom_properties_list = []
     edge_index = [[], []]
     edge_attr = []
-    # pos_list = []
-    # for atom in openbabel.OBMolAtomIter(pybel_mol.OBMol):  # idx start by 1
-    #     atom_properties, atom_x, atom_y, atom_z = get_atom_properties(atom)
-    #     atom_properties_list += atom_properties
-    #     pos_list += [[atom_x, atom_y, atom_z]]
     for bond in mol.bonds:
         ob_bond = bond.OBBond
         begin_id = ob_bond.GetBeginAtom().GetIdx() - 1

@@ -187,8 +187,6 @@ class PDBBindDataset(pyg.data.InMemoryDataset):
                               self.only_pocket,
                              self.df.loc[pdb_id]['target']))
             i += 1
-            if i==50:
-                break
         pool = mp.Pool(cfg.preprocessing_nb_cpu)
         data_path_list = list(pool.starmap(process_graph, pool_args))
         data_list = []
