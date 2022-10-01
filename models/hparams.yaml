@@ -1,22 +1,24 @@
-dropout: 0.15
-heads: 1
+dropout: 0.03
+heads: 6
 hetero_aggr: mean
 hidden_channels_la:
-- 64
-- 96
-- 144
+- 38
+- 34
+- 30
+- 27
 hidden_channels_pa:
-- 64
-- 96
-- 144
+- 26
+- 26
+- 26
+- 26
 lr: 0.001
 mlp_channels:
-- 288
-- 144
-- 72
+- 53
+- 26
+- 13
 - 1
-num_layers: 3
-num_timesteps: 8
-plot_path: /workspace/ODDT_to_Featurize/experiments/BG_PLS_OPTUNA_5/version_47
+num_layers: 4
+num_timesteps: 7
+plot_path: /workspace/ODDT_to_Featurize/experiments/BG_PLS_OPTUNA_2/version_116
 str_for_hparams: 'InterMol length: 4.0A'
 weight_decay: 0.0001
