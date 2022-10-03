@@ -18,7 +18,7 @@ RUN conda install -c conda-forge openbabel -y
 RUN conda install scikit-learn-intelex -y
 RUN conda install pandas -y
 RUN conda install biopandas -c conda-forge -y
-RUN conda install pyg=2.0.4 -c pyg
+RUN conda install pyg=2.0.4 -c pyg -y
 RUN conda install pytorch-lightning=1.5.9 -c conda-forge -y
 RUN conda install -c conda-forge xorg-libxrender -y
 
