@@ -2,11 +2,13 @@ import argparse
 import multiprocessing as mp
 import os
 import os.path as osp
+import re
 
 import pandas as pd
 import pytorch_lightning as pl
 import torch
 import torch_geometric as pyg
+from biopandas.mol2 import PandasMol2, split_multimol2
 from biopandas.pdb import PandasPdb
 
 import config as cfg
@@ -336,12 +338,199 @@ class PDBBindDataModule(pl.LightningDataModule):
                                      persistent_workers=self.persistent_workers)
 
 
+def read_decoy_rmsd(path: str):
+    lst_for_df = []
+    with open(path, 'r') as f:
+        for line in f.readlines():
+            line = line.replace('\n', '')
+            find = re.search("^#", line)
+            if find is None:
+                line_tab = line.split()
+                lst_for_df.append(line_tab)
+    df = pd.DataFrame(lst_for_df, columns=['#code', 'rmsd'])
+    return df
+
+
+def clean_backbone_str(lines):
+    for i in range(len(lines)):
+        lines[i]=lines[i].replace("BACKBONE\n", '\n')
+    return lines
+
+
+def split_multi_mol2(mol2_path: str, rmsd_path: str):
+    mol2_dict = {}
+    pdmol = PandasMol2()
+    df_rmsd = read_decoy_rmsd(rmsd_path)
+    filepath, filename = osp.split(mol2_path)
+    for mol2 in split_multimol2(mol2_path):
+        mol2[1] = clean_backbone_str(mol2[1])
+        pdmol.read_mol2_from_list(mol2_lines=mol2[1], mol2_code=mol2[0])
+        decoy_path = osp.join(filepath, "{}.mol2".format(pdmol.code))
+        rmsd = df_rmsd.loc[df_rmsd['#code'] == pdmol.code]['rmsd']
+        mol2_dict[pdmol.code] = (decoy_path, float(rmsd.item()))
+        if not osp.isfile(decoy_path):
+            with open(decoy_path, 'w') as f_decoy:
+                f_decoy.write(pdmol.mol2_text)
+    return mol2_dict
+
+
+def process_graph_for_docking_power(raw_path_protein: str,
+                                    raw_path_ligand: str,
+                                    processed_filename: str,
+                                    atomic_distance_cutoff: float,
+                                    only_pocket: bool = False,
+                                    pdb_id: str = None,
+                                    rmsd: float = 0.0,
+                                    decoy_id: str = None) -> str:
+    """Create a graph from PDBs
+
+    Args:
+        raw_path_protein (str): Path to the protein file (PDB), without ext
+        raw_path_ligand (str): Path to the lgand file (MOL2).
+        processed_filename (str): Path to the processed file.
+        atomic_distance_cutoff (float): Cutoff for inter-atomic distance.
+        only_pocket (bool, optional): Use only the binding pocket or not. Defaults to False.
+        pdb_id (int, optional): PDB ID for casf output. Defaults to None.
+        rmsd (float, optional): Used for docking power. Defaults to 0.0.
+        decoy_id (str, optional): Contains the ligand id for docking power. Defaults to None.
+
+    Returns:
+        str: Path where the graph is saved
+    """
+    protein_path = osp.join(
+        raw_path_protein, pdb_id + '_pocket.pdb') if only_pocket else osp.join(raw_path_protein, pdb_id + '_protein.pdb')
+    protein_path_clean = osp.join(
+        raw_path_protein, pdb_id + '_pocket_clean.pdb') if only_pocket else osp.join(raw_path_protein, pdb_id + '_protein_clean.pdb')
+    if not osp.isfile(protein_path_clean):
+        clean_pdb(protein_path, protein_path_clean)
+    g = create_pyg_graph(protein_path=protein_path_clean,
+                         ligand_path=raw_path_ligand,
+                         pdb_id=pdb_id,
+                         cutoff=atomic_distance_cutoff,
+                         rmsd=rmsd,
+                         decoy_id=decoy_id)
+    torch.save(g, processed_filename)
+    return processed_filename
+
+
+class DockingPower_Dataset(pyg.data.InMemoryDataset):
+    """Torch Geometric Dataset, used for Docking Power
+    """
+
+    def __init__(self, root: str, year: str,
+                 atomic_distance_cutoff: float,
+                 only_pocket: bool = False):
+        self.year = year
+        self.atomic_distance_cutoff = atomic_distance_cutoff
+        self.only_pocket = only_pocket
+        self.prefix = 'pocket' if only_pocket else 'protein'
+        self.df = pd.read_csv(
+            osp.join(cfg.data_path, 'casf{}.csv'.format(year))).set_index('pdb_id')
+        super().__init__(root)
+        self.data, self.slices = torch.load(self.processed_paths[0])
+
+    @property
+    def raw_file_names(self):
+        filename_list = []
+        for pdb_id in self.df.index:
+            filename_list.append(pdb_id)
+        return filename_list
+
+    @property
+    def processed_file_names(self):
+        return [osp.join(self.processed_dir, '{}_{}_dockingP.pt'.format(self.prefix,
+                                                                        self.atomic_distance_cutoff))]
+
+    def process(self):
+        i = 0
+        print('\tDocking Power ', self.year)
+        pool_args = []
+        nb_pdb = 0
+        for raw_path in self.raw_paths:
+            nb_pdb += 1
+            pdb_id = raw_path.split('/')[-1]
+            decoys_mol2 = osp.join(
+                cfg.decoy_path, "{}_decoys.mol2".format(pdb_id))
+            decoys_rmsd = osp.join(
+                cfg.decoy_path, "{}_rmsd.dat".format(pdb_id))
+            mol2_dict = split_multi_mol2(decoys_mol2, decoys_rmsd)
+            filename = osp.join(self.processed_dir,
+                                'TMP_DP_{}{}_data_{}.pt'.format(self.prefix,
+                                                                self.year, i))
+            ligand_path = osp.join(raw_path, "{}_ligand.mol2".format(pdb_id))
+            pool_args.append((raw_path, ligand_path, filename,
+                              self.atomic_distance_cutoff,
+                              self.only_pocket,
+                              pdb_id, 0.0, '{}_ligand'.format(pdb_id)))
+            i += 1
+            for key in mol2_dict.keys():
+                filename = osp.join(self.processed_dir,
+                                    'TMP_DP_{}{}_data_{}.pt'.format(self.prefix,
+                                                                    self.year,
+                                                                    i))
+                pool_args.append((raw_path, mol2_dict[key][0],
+                                  filename, self.atomic_distance_cutoff,
+                                  self.only_pocket,
+                                  pdb_id, mol2_dict[key][1], key))
+                i += 1
+        pool = mp.Pool(cfg.preprocessing_nb_cpu)
+        data_path_list = list(pool.starmap(process_graph_for_docking_power,
+                                           pool_args))
+        data_list = []
+        for p in data_path_list:
+            data_list.append(torch.load(p))
+            os.remove(p)
+        data, slices = self.collate(data_list)
+        torch.save((data, slices), self.processed_paths[0])
+
+
+class DockingPowerDataModule(pl.LightningDataModule):
+    def __init__(self, root: str,
+                 atomic_distance_cutoff: float,
+                 batch_size: int = 1, num_workers: int = 1,
+                 only_pocket: bool = False):
+        """_summary_
+
+        Args:
+            root (str): Path to the data directory.
+            atomic_distance_cutoff (float): Cutoff for inter-atomic distance.
+            batch_size (int, optional): The batch size. Defaults to 1.
+            num_workers (int, optional): The number of workers. Defaults to 1.
+            only_pocket (bool, optional): Use only the binding pocket or not. Defaults to False.
+        """
+        self.atomic_distance_cutoff = atomic_distance_cutoff
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.root = root
+        self.only_pocket = only_pocket
+        self.persistent_workers = True
+        super().__init__()
+
+    def prepare_data(self):
+        pass
+
+    def setup(self, stage=''):
+        self.dt_docking_power = DockingPower_Dataset(root=cfg.data_path,
+                                                     year='16',
+                                                     atomic_distance_cutoff=self.atomic_distance_cutoff,
+                                                     only_pocket=cfg.data_use_only_pocket)
+
+    def power_docking_dataloader(self):
+        return pyg.loader.DataLoader(self.dt_docking_power,
+                                     batch_size=self.batch_size, shuffle=True,
+                                     num_workers=self.num_workers,
+                                     persistent_workers=self.persistent_workers)
+
+
 if __name__ == '__main__':
     # To Create datasets
     parser = argparse.ArgumentParser()
     parser.add_argument('-cutoff', '-c',
                         type=float,
                         help='If not set, config.py atomic_distance_cutoff is used')
+    parser.add_argument('-docking_power', '-dp',
+                        action='store_true',
+                        help='Flag allowing to create the docking power dataset')
     args = parser.parse_args()
     atomic_distance_cutoff = args.cutoff
     if atomic_distance_cutoff is None:
@@ -363,3 +552,8 @@ if __name__ == '__main__':
                 year='16',
                 atomic_distance_cutoff=atomic_distance_cutoff,
                 only_pocket=cfg.data_use_only_pocket)
+    if args.docking_power:
+        DockingPower_Dataset(root=cfg.data_path,
+                            year='16',
+                            atomic_distance_cutoff=atomic_distance_cutoff,
+                            only_pocket=cfg.data_use_only_pocket)
