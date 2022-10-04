@@ -7,6 +7,7 @@ atomic_distance_cutoff = 4.0
 
 # Change this line is necessary
 data_path = osp.join(root_path, 'data')
+decoy_path = osp.join(data_path, 'decoys_docking')
 # ----------------
 index_dir_path = osp.join(data_path, 'index')
 indexes_path = {'general': osp.join(index_dir_path, 'INDEX_general_PL_data.2020'),
