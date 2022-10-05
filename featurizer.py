@@ -4,10 +4,9 @@ from typing import List, Tuple
 
 import biopandas.pdb as bpdb
 import numpy as np
-import oddt
 import oddt.interactions as interactions
 from oddt.spatial import distance
-from oddt.toolkits.ob import Molecule
+from oddt.toolkits.ob import Molecule, readfile
 from openbabel import openbabel
 
 
@@ -34,7 +33,7 @@ def open_pdb(filepath: str, hydrogens_removal: bool = True) -> Molecule:
         Molecule: The loaded molecule
     """
     redirect_c_std_err()
-    mol = next(oddt.toolkit.readfile('pdb', filepath))
+    mol = next(readfile('pdb', filepath))
     if hydrogens_removal:
         mol.removeh()
     return mol
@@ -51,7 +50,7 @@ def open_mol2(filepath: str, hydrogens_removal: bool = True) -> Molecule:
         Molecule: The loaded molecule
     """
     redirect_c_std_err()
-    mol = next(oddt.toolkit.readfile('mol2', filepath))
+    mol = next(readfile('mol2', filepath))
     if hydrogens_removal:
         mol.removeh()
     return mol
@@ -74,20 +73,20 @@ def atom_type_one_hot(atomic_num: int) -> List[int]:
     return one_hot
 
 
-def atom_hyb_one_hot(hyb: int) -> List[int]:
+def atom_hyb_one_hot(hybridization: int) -> List[int]:
     """"Returns the one-hot encoded atom hybridization [other, sp, sp2, sp3, sq. planar, trig. bipy, octahedral]
 
     Args:
-        hyb (int): Hybridization
+        hybridization (int): Hybridization
 
     Returns:
         List[int]: The one-hot encoded hybridization
     """
-    oh_hyb = 7 * [0]
-    if hyb not in [1, 2, 3, 4, 5, 6]:
-        hyb = 0
-    oh_hyb[hyb] = 1
-    return oh_hyb
+    onehot_hybridization = 7 * [0]
+    if hybridization not in [1, 2, 3, 4, 5, 6]:
+        hybridization = 0
+    onehot_hybridization[hybridization] = 1
+    return onehot_hybridization
 
 
 def atom_degree_one_hot(degree: int) -> List[int]:
