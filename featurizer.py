@@ -2,10 +2,12 @@ import os
 import sys
 from typing import List, Tuple
 
-import scipy.spatial
-from openbabel import openbabel, pybel
-
-MAX_BOND_ATOMIC_DISTANCE = 7.0
+import biopandas.pdb as bpdb
+import numpy as np
+import oddt.interactions as interactions
+from oddt.spatial import distance
+from oddt.toolkits.ob import Molecule, readfile
+from openbabel import openbabel
 
 
 def redirect_c_std_err():
@@ -20,7 +22,7 @@ def redirect_c_std_err():
     sys.stderr = os.fdopen(newstderr, 'w')
 
 
-def open_pdb(filepath: str, hydrogens_removal: bool = True) -> pybel.Molecule:
+def open_pdb(filepath: str, hydrogens_removal: bool = True) -> Molecule:
     """Open and load a molecule from a PDB file.
 
     Args:
@@ -28,16 +30,16 @@ def open_pdb(filepath: str, hydrogens_removal: bool = True) -> pybel.Molecule:
         hydrogens_removal (bool, optional): To remove hydrogen atoms. Defaults to True.
 
     Returns:
-        pybel.Molecule: The loaded molecule
+        Molecule: The loaded molecule
     """
     redirect_c_std_err()
-    pymol = next(pybel.readfile('pdb', filepath))
+    mol = next(readfile('pdb', filepath))
     if hydrogens_removal:
-        pymol.removeh()
-    return pymol
+        mol.removeh()
+    return mol
 
 
-def open_mol2(filepath: str, hydrogens_removal: bool = True) -> pybel.Molecule:
+def open_mol2(filepath: str, hydrogens_removal: bool = True) -> Molecule:
     """Open and load a molecule from a MOL2 file.
 
     Args:
@@ -45,13 +47,13 @@ def open_mol2(filepath: str, hydrogens_removal: bool = True) -> pybel.Molecule:
         hydrogens_removal (bool, optional): To remove hydrogen atoms. Defaults to True.
 
     Returns:
-        pybel.Molecule: The loaded molecule
+        Molecule: The loaded molecule
     """
     redirect_c_std_err()
-    pymol = next(pybel.readfile('mol2', filepath))
+    mol = next(readfile('mol2', filepath))
     if hydrogens_removal:
-        pymol.removeh()
-    return pymol
+        mol.removeh()
+    return mol
 
 
 def atom_type_one_hot(atomic_num: int) -> List[int]:
@@ -63,103 +65,45 @@ def atom_type_one_hot(atomic_num: int) -> List[int]:
     Returns:
         List[int]: The one-hot encoded type
     """
-    one_hot = 8*[0]
-    used_atom_num = [5, 6, 7, 8, 9, 15, 16]  # B, C, N, O, F, P, S, Others
+    one_hot = 8 * [0]
+    used_atom_num = [5, 6, 7, 8, 9, 15, 16]  # B, C, N, O, F, P, S, and Others
     d_atm_num = {5: 0, 6: 1, 7: 2, 8: 3, 9: 4, 15: 5, 16: 6}
     if atomic_num in used_atom_num:
         one_hot[d_atm_num[atomic_num]] = 1
     return one_hot
 
 
-def atom_hyb_one_hot(atom: pybel.Atom) -> List[int]:
+def atom_hyb_one_hot(hybridization: int) -> List[int]:
     """"Returns the one-hot encoded atom hybridization [other, sp, sp2, sp3, sq. planar, trig. bipy, octahedral]
 
     Args:
-        atom (pybel.Atom): A Pybel atom
+        hybridization (int): Hybridization
 
     Returns:
         List[int]: The one-hot encoded hybridization
     """
-    oh_hyb = 7*[0]
-    hyb = atom.GetHyb()
-    if hyb not in [1, 2, 3, 4, 5, 6]:
-        hyb = 0
-    oh_hyb[hyb] = 1
-    return oh_hyb
+    onehot_hybridization = 7 * [0]
+    if hybridization not in [1, 2, 3, 4, 5, 6]:
+        hybridization = 0
+    onehot_hybridization[hybridization] = 1
+    return onehot_hybridization
 
 
-def atom_heavy_degree_one_hot(atom: pybel.Atom) -> List[int]:
-    """Returns the one-hot encoded atom heavy degree [0, 1, 2, 3, 4, 5, 6+]
-
-    Args:
-        atom (pybel.Atom): A Pybel atom
-
-    Returns:
-        List[int]: The one-hot encoded heavy degree
-    """
-    degree = 7*[0]
-    atm_deg = atom.GetHvyDegree()
-    if atm_deg > 6:
-        atm_deg = 6
-    degree[atm_deg] = 1
-    return degree
-
-
-def atom_hetero_degree_one_hot(atom: pybel.Atom) -> List[int]:
-    """Returns the one-hot encoded atom hetero degree [0, 1, 2, 3, 4, 5, 6+]
+def atom_degree_one_hot(degree: int) -> List[int]:
+    """"Returns the one-hot encoded atom heavy/hetero [0, 1, 2, 3, 4, 5, 6+]
 
     Args:
-        atom (pybel.Atom): A Pybel atom
+        degree (int): The Hetero/Heavy degree
 
     Returns:
-        List[int]: The one-hot encoded hetero degree
+        List[int]: The one-hot encoded degree
     """
-    degree = 7*[0]
-    atm_deg = atom.GetHeteroDegree()
-    if atm_deg > 6:
-        atm_deg = 6
-    degree[atm_deg] = 1
-    return degree
-
-
-def get_atom_properties(atom: pybel.Atom) -> Tuple[List, float, float, float]:
-    """Returns atomic properties: 
-     * The one-hot encoded atom type
-     * The one-hot encoded hybridization
-     * The one-hot encoded heavy degree
-     * The one-hot encoded hetero degree
-     * Partial Charge
-     * Is the atom hydrophobic
-     * Is in an aromatic ring
-     * Is HBond acceptor
-     * Is HBond donor
-     * Is in a ring
-     * The [x, y, z] position
-
-    Args:
-        atom (pybel.Atom):  A Pybel atom
-
-    Returns:
-        Tuple[List, float, float, float]: The properties list and the x, y, z coordinates
-    """
-    # From TFbio - Kalansanty (https://gitlab.com/cheminfIBB/tfbio/-/blob/master/tfbio/data.py)
-    smarts_hydrophobic = '[#6+0!$(*~[#7,#8,F]),SH0+0v2,s+0,S^3,Cl+0,Br+0,I+0]'
-    one_hot_enc_type = atom_type_one_hot(atom.GetAtomicNum())
-    one_hot_enc_hyb = atom_hyb_one_hot(atom)
-    one_hot_enc_heavy_degree = atom_heavy_degree_one_hot(atom)
-    one_hot_enc_hetero_degree = atom_hetero_degree_one_hot(atom)
-    hydrophobic = atom.MatchesSMARTS(smarts_hydrophobic)
-    atom_property = [one_hot_enc_type + one_hot_enc_hyb +
-                     one_hot_enc_heavy_degree + one_hot_enc_hetero_degree +
-                     [atom.GetPartialCharge(),
-                      hydrophobic,
-                      atom.IsAromatic(),
-                      atom.IsHbondAcceptor(),
-                      atom.IsHbondDonor(),
-                      atom.IsInRing()
-                      ]]
-
-    return atom_property, atom.GetX(), atom.GetY(), atom.GetZ()
+    oh_degree = 7 * [0]
+    if degree > 6:
+        oh_degree[6] = 1
+    else:
+        oh_degree[degree] = 1
+    return oh_degree
 
 
 def get_bond_properties(bond: openbabel.OBBond) -> List:
@@ -184,83 +128,235 @@ def get_bond_properties(bond: openbabel.OBBond) -> List:
     ring = bond.IsInRing()
     return [length, aromatic, ring, order == 1, order == 2, order == 3]
 
-# get_molecule_atomic_properties
 
-
-def get_molecule_properties(pybel_mol: pybel.Molecule) -> Tuple[List, List, List, List]:
+def get_molecule_properties(mol: Molecule) -> Tuple[List, List, List, List]:
     """Computes all atomic and bond properties of a molecule
 
     Args:
-        pybel_mol (pybel.Molecule): A Pybel Molecule
+        pybel_mol (Molecule): A ODDT Molecule
 
     Returns:
-        Tuple[List, List, List, List]: (The atoms' properties, the atoms' position, the edge index, the edge attr)
+        Tuple[List, List, List, List]: (The atoms' properties, the atoms' position,
+            the edge index, the edge attr)
     """
-    atom_properties_list = []
+    # oh_ means one-hot encoded
+    oh_atom_type = np.array(
+        list(map(atom_type_one_hot, mol.atom_dict['atomicnum'].tolist())))
+    oh_hybridization = np.array(
+        list(map(atom_hyb_one_hot, mol.atom_dict['hybridization'].tolist())))
+    partial_charge = mol.atom_dict['charge'].reshape(-1, 1)
+    hydrophobic = mol.atom_dict['ishydrophobe'].reshape(-1, 1)
+    isaromatic = mol.atom_dict['isaromatic'].reshape(-1, 1)
+    # is atom H-bond acceptor
+    isacceptor = mol.atom_dict['isacceptor'].reshape(-1, 1)
+    isdonor = mol.atom_dict['isdonor'].reshape(-1, 1)  # is atom H-bond donor
+
+    # is atom H-bond donor Hydrogen
+    isdonorh = mol.atom_dict['isdonorh'].reshape(-1, 1)
+    ismetal = mol.atom_dict['ismetal'].reshape(-1, 1)
+    isminus = mol.atom_dict['isminus'].reshape(-1, 1)
+    isplus = mol.atom_dict['isplus'].reshape(-1, 1)
+    ishalogen = mol.atom_dict['ishalogen'].reshape(-1, 1)
+
+    list_atom_heavy_degree = []
+    list_atom_hetero_degree = []
+    for atom in mol:
+        ob_atom = atom.OBAtom
+        list_atom_heavy_degree += [atom_degree_one_hot(ob_atom.GetHvyDegree())]
+        list_atom_hetero_degree += [atom_degree_one_hot(ob_atom.GetHeteroDegree())]
+
+    array_atom_heavy_degree = np.array(list_atom_heavy_degree)
+    array_atom_hetero_degree = np.array(list_atom_hetero_degree)
+
+    atom_properties_list = np.concatenate((oh_atom_type, oh_hybridization,
+                                           partial_charge, hydrophobic,
+                                           isaromatic, isacceptor, isdonor,
+                                           isdonorh, ismetal, isminus, isplus,
+                                           ishalogen, array_atom_heavy_degree,
+                                           array_atom_hetero_degree), axis=1).tolist()
     edge_index = [[], []]
     edge_attr = []
-    pos_list = []
-    for atom in openbabel.OBMolAtomIter(pybel_mol.OBMol):  # idx start by 1
-        atom_properties, atom_x, atom_y, atom_z = get_atom_properties(atom)
-        atom_properties_list += atom_properties
-        pos_list += [[atom_x, atom_y, atom_z]]
-    for bond in openbabel.OBMolBondIter(pybel_mol.OBMol):
-        begin_id = bond.GetBeginAtom().GetIdx() - 1
-        end_id = bond.GetEndAtom().GetIdx() - 1
+    for bond in mol.bonds:
+        ob_bond = bond.OBBond
+        begin_id = ob_bond.GetBeginAtom().GetIdx() - 1
+        end_id = ob_bond.GetEndAtom().GetIdx() - 1
         edge_index[0] += [begin_id, end_id]
         edge_index[1] += [end_id, begin_id]
-        edge_attr += [get_bond_properties(bond), get_bond_properties(bond)]
+        edge_attr += [get_bond_properties(ob_bond),
+                      get_bond_properties(ob_bond)]
 
     return (atom_properties_list,
-            pos_list,
             edge_index, edge_attr)
 
 
-def get_bonds_protein_ligand(protein_atm_pos: List, ligand_atm_pos: List, threshold: float = 1.0):
-    """Returns the bond between the protein and the ligand regarding the threshold.
+def extract_atom_id_from_oddt_interractions(mol1_atoms_array, mol2_atoms_array):
+    dico = {}
+    for mol1_atom, mol2_atom in zip(mol1_atoms_array, mol2_atoms_array):
+        mol1_atm_id = int(mol1_atom[0])
+        mol2_atom_id = int(mol2_atom[0])
+        if mol1_atm_id not in dico.keys():
+            dico[mol1_atm_id] = []
+        dico[mol1_atm_id] += [mol2_atom_id]
+    return dico
+
+
+def extract_residu_id_from_oddt_interractions(protein_residus_array):
+    list_residu = []
+    if protein_residus_array.shape[0] != 0:
+        for np_row in np.nditer(protein_residus_array):
+            list_residu.append(np_row.tolist()[2])
+    return list_residu
+
+
+def atom_pair_in_dico(dico, mol1_atom_id, mol2_atom_id):
+    if mol1_atom_id in dico.keys():
+        return mol2_atom_id in dico[mol1_atom_id]
+    return False
+
+
+def is_pi(res_name: str, atom_name: str) -> bool:
+    if res_name == 'HIS':
+        if (atom_name == 'CG' or atom_name == 'CD2' or atom_name == 'NE2'
+                or atom_name == 'CE1' or atom_name == 'ND1'):
+            return True
+        return False
+    elif res_name == 'PHE':
+        if (atom_name == 'CG' or atom_name == 'CD2' or atom_name == 'CE2'
+                or atom_name == 'CZ' or atom_name == 'CE1'
+                or atom_name == 'CD1'):
+            return True
+        return False
+    elif res_name == 'TYR':
+        if (atom_name == 'CG' or atom_name == 'CD1' or atom_name == 'CE1'
+                or atom_name == 'CE2' or atom_name == 'CD2'
+                or atom_name == 'CZ'):
+            return True
+        return False
+    elif res_name == 'TRP':
+        if (atom_name == 'CG' or atom_name == 'CD1' or atom_name == 'NE1'
+                or atom_name == 'CE2' or atom_name == 'CD2'
+                or atom_name == 'CE3' or atom_name == 'CZ2'
+                or atom_name == 'CZ3' or atom_name == 'CH2'):
+            return True
+        return False
+    return False
+
+
+def close_contact_to_dict(protein_close_contacts: np.ndarray,
+                          ligand_close_contacts: np.ndarray) -> dict:
+    dict_close_contacts = {}
+    for protein_atm, ligand_atm in zip(protein_close_contacts, ligand_close_contacts):
+        protein_atm_id = int(protein_atm[0])
+        ligand_atom_id = int(ligand_atm[0])
+        if ligand_atom_id not in dict_close_contacts.keys():
+            dict_close_contacts[ligand_atom_id] = []
+        dict_close_contacts[ligand_atom_id] += [[
+            protein_atm_id, protein_atm, ligand_atm]]
+    return dict_close_contacts
+
+
+def get_bonds_protein_ligand(protein: Molecule, ligand: Molecule,
+                             cutoff: float,
+                             list_atom_name: List[str]) -> Tuple[List, List, List, List]:
+    """Returns the bond between the protein and the ligand regarding the cutoff.
      All ligand must have at least one edge with an protein's atom.
 
     Args:
-        protein_atm_pos (List): All protein's atoms position
-        ligand_atm_pos (List):  All protein's atoms position
-        threshold (float, optional): The maximal distance between two atoms to connect them with an edge. Defaults to 1.0.
+        protein (Molecule): protein
+        ligand (Molecule):  ligand
+        cutoff (float): The maximal distance between two atoms to connect them with an edge.
+        list_atom_name (List[str]): List of PDB atom name, use for pi interactions
 
     Returns:
-        _type_: Protein to Ligand Edge Index, Ligand to Protein Edge Index, Protein to Ligand Edge Attr, Ligand to Protein Edge Attr
+        Tuple(List, List, List, List): Protein to Ligand Edge Index, Ligand to
+            Protein Edge Index, Protein to Ligand Edge Attr, Ligand to Protein Edge Attr
     """
+    close_contact_protein, close_contact_ligand = interactions.close_contacts(
+        protein.atom_dict, ligand.atom_dict, cutoff=cutoff)
+
+    hbond_protein, hbond_ligand, _ = interactions.hbonds(
+        protein, ligand, cutoff=cutoff)
+    dico_hbonds = extract_atom_id_from_oddt_interractions(
+        hbond_protein, hbond_ligand)
+
+    hydrophobic_contact_protein, hydrophobic_contact_ligand = interactions.hydrophobic_contacts(
+        protein, ligand, cutoff=cutoff)
+    dico_hydrophobic_contact = extract_atom_id_from_oddt_interractions(
+        hydrophobic_contact_protein, hydrophobic_contact_ligand)
+
+    salt_bridges_protein, salt_bridges_ligand = interactions.salt_bridges(
+        protein, ligand, cutoff=cutoff)
+    dico_salt_bridges = extract_atom_id_from_oddt_interractions(
+        salt_bridges_protein, salt_bridges_ligand)
+
+    # pi_stacking
+    pi_stacking_protein_residue, pi_stacking_ligand, _, _ = interactions.pi_stacking(
+        protein, ligand, cutoff=cutoff)
+    list_residus_pi_stacking = extract_residu_id_from_oddt_interractions(
+        pi_stacking_protein_residue)
+
+    # pi_cation
+    pi_cation_protein_residue, pi_cation_ligand, _ = interactions.pi_cation(
+        protein, ligand, cutoff=cutoff)
+    list_residus_pi_cation = extract_residu_id_from_oddt_interractions(
+        pi_cation_protein_residue)
+
+    protein_atm_to_res_dict = {}
+    for np_row in np.nditer(protein.atom_dict):
+        protein_atm_to_res_dict[np_row.tolist()[0]] = np_row.tolist()[9]
+
     p_to_l_edge_index = [[], []]
     p_to_l_edge_attr = []
     l_to_p_edge_index = [[], []]
     l_to_p_edge_attr = []
-    dist_mat = scipy.spatial.distance.cdist(
-        protein_atm_pos, ligand_atm_pos)
-    nb_protein_atm = len(protein_atm_pos)
-    for ligand_node in range(len(ligand_atm_pos)):
-        min_dist = 1000.0
-        idx_min_dist = -1
-        for prot_node in range(nb_protein_atm):
-            dist = dist_mat[prot_node, ligand_node].item()
-            if dist < min_dist:
-                min_dist = dist
-                idx_min_dist = prot_node
-            if dist <= threshold:
-                p_to_l_edge_index[0] += [prot_node]
-                p_to_l_edge_index[1] += [ligand_node]
-                l_to_p_edge_index[0] += [ligand_node]
-                l_to_p_edge_index[1] += [prot_node]
-                p_to_l_edge_attr += [[dist]]
-                l_to_p_edge_attr += [[dist]]
-        if min_dist > threshold:  # 0 link between atom i in ligand and protein
-            p_to_l_edge_index[0] += [idx_min_dist]
-            p_to_l_edge_index[1] += [ligand_node]
-            l_to_p_edge_index[0] += [ligand_node]
-            l_to_p_edge_index[1] += [idx_min_dist]
-            p_to_l_edge_attr += [[min_dist]]
-            l_to_p_edge_attr += [[min_dist]]
+    dict_close_contacts = close_contact_to_dict(
+        close_contact_protein, close_contact_ligand)
+    dists = distance(protein.atom_dict['coords'], ligand.atom_dict['coords'])
+    for ligand_atom_id in range(len(ligand.atoms)):
+        if ligand_atom_id in dict_close_contacts.keys():
+            for close_contact in dict_close_contacts[ligand_atom_id]:
+                protein_atm_id = close_contact[1][0]
+                protein_atm = close_contact[1]
+                ligand_atm = close_contact[2]
+                dist = distance([protein_atm[1]], [ligand_atm[1]])[0][0]
+                protein_atom_res = protein_atm_to_res_dict[protein_atm_id]
+                protein_atom_name = list_atom_name[protein_atm_id]
+                res_name = protein_atm[11]
+
+                atom_is_pi = is_pi(res_name, protein_atom_name)
+
+                is_hbond = atom_pair_in_dico(
+                    dico_hbonds, protein_atm_id, ligand_atom_id)
+                is_hydrophobic_contact = atom_pair_in_dico(
+                    dico_hydrophobic_contact, protein_atm_id, ligand_atom_id)
+                is_salt_bridge = atom_pair_in_dico(
+                    dico_salt_bridges, protein_atm_id, ligand_atom_id)
+                is_pi_stacking = protein_atom_res in list_residus_pi_stacking and atom_is_pi
+                is_pi_cation = protein_atom_res in list_residus_pi_cation and atom_is_pi
+
+                p_to_l_edge_index[0] += [int(protein_atm_id)]
+                p_to_l_edge_index[1] += [int(ligand_atom_id)]
+                l_to_p_edge_index[0] += [int(ligand_atom_id)]
+                l_to_p_edge_index[1] += [int(protein_atm_id)]
+                p_to_l_edge_attr += [[dist,
+                                      is_hbond, is_hydrophobic_contact, is_salt_bridge,
+                                      is_pi_stacking, is_pi_cation]]
+                l_to_p_edge_attr += [[dist,
+                                      is_hbond, is_hydrophobic_contact, is_salt_bridge,
+                                      is_pi_stacking, is_pi_cation]]
+        else:
+            closer_protein_atm_id = np.argmin(dists[:, ligand_atom_id])
+            dist = dists[closer_protein_atm_id, ligand_atom_id]
+            p_to_l_edge_index[0] += [int(closer_protein_atm_id)]
+            p_to_l_edge_index[1] += [int(ligand_atom_id)]
+            l_to_p_edge_index[0] += [int(ligand_atom_id)]
+            l_to_p_edge_index[1] += [int(closer_protein_atm_id)]
+            p_to_l_edge_attr += [[dist, False, False, False, False, False]]
+            l_to_p_edge_attr += [[dist, False, False, False, False, False]]
     return p_to_l_edge_index, l_to_p_edge_index, p_to_l_edge_attr, l_to_p_edge_attr
 
 
-def featurize(protein_path: str, ligand_path: str) -> Tuple:
+def featurize(protein_path: str, ligand_path: str, cutoff: float) -> Tuple:
     """Featurize a protein and a ligand to a set of nodes and edges
 
     Args:
@@ -272,15 +368,23 @@ def featurize(protein_path: str, ligand_path: str) -> Tuple:
     """
     # protein_path can be protein or pocket path
     protein = open_pdb(protein_path, hydrogens_removal=True)
+    protein.protein = True
     ligand = open_mol2(ligand_path, hydrogens_removal=True)
+    # Get PDB atom name
+    ppdb = bpdb.PandasPdb()
+    ppdb.read_pdb(protein_path)
+    atom_df = ppdb.df['ATOM'][ppdb.df['ATOM']['element_symbol'] != 'H']
+    list_atom_name = atom_df['atom_name'].tolist()
 
-    (protein_atom_properties_list, protein_atm_pos,
+    (protein_atom_properties_list,
      protein_edge_index, protein_edge_attr) = get_molecule_properties(protein)
-    (ligand_atom_properties_list, ligand_atm_pos,
+    (ligand_atom_properties_list,
      ligand_edge_index, ligand_edge_attr) = get_molecule_properties(ligand)
 
-    p_atm_to_l_edge_index, l_to_p_atm_edge_index, p_atm_to_l_edge_attr, l_to_p_atm_edge_attr = get_bonds_protein_ligand(
-        protein_atm_pos, ligand_atm_pos, threshold=MAX_BOND_ATOMIC_DISTANCE)
+    (p_atm_to_l_edge_index, l_to_p_atm_edge_index, p_atm_to_l_edge_attr,
+     l_to_p_atm_edge_attr) = get_bonds_protein_ligand(protein, ligand,
+                                                      cutoff=cutoff,
+                                                      list_atom_name=list_atom_name)
 
     return (protein_atom_properties_list,  # protein_atoms.x
             ligand_atom_properties_list,  # ligand_atoms.x
@@ -293,5 +397,5 @@ def featurize(protein_path: str, ligand_path: str) -> Tuple:
             protein_edge_attr,  # protein_atoms <-> protein_atoms
             ligand_edge_attr,  # ligand_atoms <-> ligand_atoms
             l_to_p_atm_edge_attr,  # ligand_atoms ->  protein_atoms
-            p_atm_to_l_edge_attr,  # protein_atoms -> ligand_atoms
+            p_atm_to_l_edge_attr  # protein_atoms -> ligand_atoms
             )

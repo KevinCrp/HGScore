@@ -5,7 +5,8 @@ from typing import Dict, List, Tuple
 import config as cfg
 
 
-def load_index(index_path: str, exluded_pdb: List = [], with_cluster: bool=False) -> Dict:
+def load_index(index_path: str, exluded_pdb: List = [],
+               with_cluster: bool = False) -> Dict:
     """Load a csv index into a dictionnary
 
     Args:
@@ -33,7 +34,7 @@ def load_index(index_path: str, exluded_pdb: List = [], with_cluster: bool=False
     return set_dict
 
 
-def dict_to_csv(set_dict: Dict, filepath: str, with_cluster: bool=False):
+def dict_to_csv(set_dict: Dict, filepath: str, with_cluster: bool = False):
     """Save a distionnary in a csv file
 
     Args:
@@ -48,7 +49,8 @@ def dict_to_csv(set_dict: Dict, filepath: str, with_cluster: bool=False):
             csvfile.write('pdb_id,target')
         for pdb_id in set_dict.keys():
             if with_cluster:
-                csvfile.write('\n{},{},{}'.format(pdb_id, set_dict[pdb_id][0], set_dict[pdb_id][1]))
+                csvfile.write('\n{},{},{}'.format(
+                    pdb_id, set_dict[pdb_id][0], set_dict[pdb_id][1]))
             else:
                 csvfile.write('\n{},{}'.format(pdb_id, set_dict[pdb_id]))
 
@@ -103,8 +105,9 @@ if __name__ == '__main__':
     val_size_size = 1000
 
     dict_data_core_16 = load_index(cfg.indexes_path['core'], with_cluster=True)
-    dict_data_core_13 = load_index(cfg.indexes_path['core_2013'], with_cluster=True)
-    
+    dict_data_core_13 = load_index(
+        cfg.indexes_path['core_2013'], with_cluster=True)
+
     dict_data_refined = load_index(
         cfg.indexes_path['refined'], exluded_pdb=list(
             dict_data_core_16.keys()) + list(dict_data_core_13.keys()))
@@ -113,8 +116,7 @@ if __name__ == '__main__':
         dict_data_refined, val_size_size)
 
     dict_data_general = load_index(cfg.indexes_path['general'], exluded_pdb=list(
-        dict_data_core_16.keys()) + list(dict_data_refined.keys()) +
-        list(dict_data_core_13.keys()))
+        dict_data_core_16.keys()) + list(dict_data_refined.keys()) + list(dict_data_core_13.keys()))
 
     dict_data_train = {**dict_data_general, **dict_refined_for_train}
 
@@ -131,5 +133,7 @@ if __name__ == '__main__':
     data_path = cfg.data_path
     dict_to_csv(dict_data_val, osp.join(data_path, 'val.csv'))
     dict_to_csv(dict_data_train, osp.join(data_path, 'train.csv'))
-    dict_to_csv(dict_data_core_16, osp.join(data_path, 'casf16.csv'), with_cluster=True)
-    dict_to_csv(dict_data_core_13, osp.join(data_path, 'casf13.csv'), with_cluster=True)
+    dict_to_csv(dict_data_core_16, osp.join(
+        data_path, 'casf16.csv'), with_cluster=True)
+    dict_to_csv(dict_data_core_13, osp.join(
+        data_path, 'casf13.csv'), with_cluster=True)

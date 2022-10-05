@@ -3,3 +3,5 @@ obabel.err
 experiments/*
 data/processed/*
 data/test/*
+data/raw/*
+data/raw

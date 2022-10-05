@@ -55,11 +55,10 @@ def scoring_power(df: pd.DataFrame) -> Tuple[float, float, float, float, float]:
     # From CASF Code
     df2 = df[df.score > 0]
     if df2.shape[0] < 2:
-        return nan, nan, df2.shape[0]
-
+        return nan, nan, df2.shape[0], nan, nan
     nb_favorable_sample = (df.score > 0).sum()
     if nb_favorable_sample == 0:
-        return None, None, nb_favorable_sample
+        return None, None, nb_favorable_sample, nan, nan
     regr = linear_model.LinearRegression()
     regr.fit(df2[['score']], df2[['logKa']])
     testpredy = regr.predict(df2[['score']])
@@ -69,6 +68,5 @@ def scoring_power(df: pd.DataFrame) -> Tuple[float, float, float, float, float]:
     mae = mean_absolute_error(df2[['logKa']], testpredy)
     rmse = math.sqrt(testmse)
     num = df2.shape[0]
-    sd = np.sqrt((testmse*num)/(num-1))
-
+    sd = np.sqrt((testmse * num) / (num - 1))
     return pearsonr, sd, float(nb_favorable_sample), mae, rmse

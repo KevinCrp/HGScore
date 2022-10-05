@@ -22,11 +22,11 @@ def cal_PI(df: pd.DataFrame) -> float:
         xi = lst[i]
         score = float(dfsorted.loc[xi]['score'])
         bindaff = float(dfsorted.loc[xi]['logKa'])
-        for j in np.arange(i+1, df.shape[0]):
+        for j in np.arange(i + 1, df.shape[0]):
             xj = lst[j]
             scoretemp = float(dfsorted.loc[xj]['score'])
             bindafftemp = float(dfsorted.loc[xj]['logKa'])
-            w_ij = abs(bindaff-bindafftemp)
+            w_ij = abs(bindaff - bindafftemp)
             W.append(w_ij)
             if score < scoretemp:
                 WC.append(w_ij)
@@ -34,12 +34,14 @@ def cal_PI(df: pd.DataFrame) -> float:
                 WC.append(-w_ij)
             else:
                 WC.append(0)
-    pi = float(sum(WC))/float(sum(W))
+    pi = float(sum(WC)) / float(sum(W))
     return pi
 
 
-def ranking_power_pt(preds: torch.Tensor, target: torch.Tensor,
-                     num_in_cluster: int, clusters: torch.Tensor) -> Tuple[float, float, float]:
+def ranking_power_pt(preds: torch.Tensor,
+                     target: torch.Tensor,
+                     num_in_cluster: int,
+                     clusters: torch.Tensor) -> Tuple[float, float, float]:
     """Compute the CASF scoring power from PyTorch Tensors
 
     Args:
@@ -51,8 +53,9 @@ def ranking_power_pt(preds: torch.Tensor, target: torch.Tensor,
     Returns:
         Tuple[float, float, float]: Spearman’s rank correlation coefficient; Kendall’s rank correlation coefficient; Predictive Index
     """
-    t = torch.cat((preds.view(-1, 1), target.view(-1, 1), clusters.view(-1, 1)), -1).cpu().numpy()
-    df = pd.DataFrame(t, columns=['score', 'logKa','cluster'])
+    t = torch.cat((preds.view(-1, 1), target.view(-1, 1),
+                  clusters.view(-1, 1)), -1).cpu().numpy()
+    df = pd.DataFrame(t, columns=['score', 'logKa', 'cluster'])
     return ranking_power(df, num_in_cluster)
 
 
@@ -87,8 +90,8 @@ def ranking_power(df: pd.DataFrame,
         kendall_sum += kendall_coef
         pi_sum += pi
 
-    spearman_mean = spearman_sum/nb_clusters
-    kendall_mean = kendall_sum/nb_clusters
-    pi_mean = pi_sum/nb_clusters
+    spearman_mean = spearman_sum / nb_clusters
+    kendall_mean = kendall_sum / nb_clusters
+    pi_mean = pi_sum / nb_clusters
 
     return spearman_mean, kendall_mean, pi_mean

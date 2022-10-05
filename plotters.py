@@ -14,7 +14,7 @@ def plot_linear_reg(p: torch.Tensor, t: torch.Tensor, pearson_r: float,
     Args:
         p (torch.Tensor): The tensor of predicted values
         t (torch.Tensor): The tensor of real values
-        pearson_r (float): The Pearson Correlation coef 
+        pearson_r (float): The Pearson Correlation coef
         sd (float): The standard deviation
         filepath (str): Path where save the plot
     """
@@ -31,10 +31,13 @@ def plot_linear_reg(p: torch.Tensor, t: torch.Tensor, pearson_r: float,
     regr2_pred_rl = regr2.predict(targets.numpy().reshape(-1, 1))
 
     plt.scatter(targets, preds, c='blue', label='Network outputs')
+    # plt.scatter(targets, targets, c='green', label='Ground Truth')
     plt.plot(targets, gt_pred_rl, c='orange',
              label="Ground Truth Linear Regression")
+    # pearson_r = pearson_r if pearson_r is not None else float('nan')
+    # sd = sd if sd is not None else float('nan')
     plt.plot(targets.numpy(), regr2_pred_rl, c='red',
-             label="Linear Regression")
+             label="Linear Regression")  # Rp={:.2f} ; SD={:.2f}".format(pearson_r, sd))
 
     plt.xlabel('Targeted Scores')
     plt.ylabel('Predicted Scores')
@@ -44,13 +47,13 @@ def plot_linear_reg(p: torch.Tensor, t: torch.Tensor, pearson_r: float,
 
 
 def save_predictions(pdb_id: List, preds: torch.Tensor, filepath: str):
-    """Save predicted scores in a csv file, respecting the CASF format 
+    """Save predicted scores in a csv file, respecting the CASF format
 
     Args:
         pdb_id (List): List of pdb id
         preds (torch.Tensor): score
         filepath (str): Where save the csv
-    """    
+    """
     preds = np.round(preds.view(-1, 1).detach().cpu().numpy(), 2)
     pdb_id = np.array(pdb_id)
     t = np.concatenate((pdb_id, preds), axis=-1)

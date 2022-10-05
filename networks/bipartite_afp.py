@@ -2,90 +2,89 @@ from typing import Dict, List, Tuple
 
 import torch
 import torch_geometric as pyg
-from layers.bipartite_afp_layers import (AFP_GATE_GRUConv_IntraMol,
-                                         AFP_GATE_GRUConv_InterMol,
-                                         AFP_GATGRUConv_IntraMol,
+from layers.bipartite_afp_layers import (AFP_GATE_GRUConv_InterMol,
+                                         AFP_GATE_GRUConv_IntraMol,
                                          AFP_GATGRUConv_InterMol,
+                                         AFP_GATGRUConv_IntraMol,
                                          AFP_GATGRUConvMol, molecular_pooling)
 from torch_geometric.nn import HeteroConv
 
-NB_ATOM_FTS = 35
+NB_ATOM_FTS = 39
+NB_INTRA_BOND_FTS = 6
+NB_INTER_BOND_FTS = 6
 
 
 def get_het_conv_first_layer(hidden_channels_pa: int,
                              hidden_channels_la: int,
-                             heads: int = 1,
                              dropout: float = 0.0) -> Dict:
     """Produce a dictionnary for heterogeneous graph convolution. Used to create the first layer of our network
 
     Args:
         hidden_channels_pa (int): The input channels size for the protein
         hidden_channels_la (int): The input channels size for the ligand
-        heads (int, optional): NUmber of heads. Defaults to 1.
         dropout (float, optional): Dropout rate. Defaults to 0.0.
 
     Returns:
         Dict: A dictionnary containing the layer
     """
     conv_dict = {}
-    gatconv_hidden_channels_pa = hidden_channels_pa // heads
-    gatconv_hidden_channels_la = hidden_channels_la // heads
 
     conv_dict[('protein_atoms', 'linked_to', 'protein_atoms')] = AFP_GATE_GRUConv_IntraMol(
-        NB_ATOM_FTS, hidden_channels_pa, edge_dim=6, heads=heads,
-        dropout=dropout, add_self_loops=False)
+        NB_ATOM_FTS, hidden_channels_pa, dropout=dropout,
+        edge_dim=NB_INTRA_BOND_FTS)
 
     conv_dict[('ligand_atoms', 'linked_to', 'ligand_atoms')] = AFP_GATE_GRUConv_IntraMol(
-        NB_ATOM_FTS, hidden_channels_la, edge_dim=6, heads=heads,
-        dropout=dropout, add_self_loops=False)
+        NB_ATOM_FTS, hidden_channels_la, dropout=dropout,
+        edge_dim=NB_INTRA_BOND_FTS)
 
     conv_dict[('ligand_atoms', 'interact_with', 'protein_atoms')] = AFP_GATE_GRUConv_InterMol(
-        (NB_ATOM_FTS, NB_ATOM_FTS), hidden_channels_pa, edge_dim=1,
-        heads=heads, dropout=dropout, add_self_loops=False)
+        (NB_ATOM_FTS, NB_ATOM_FTS), hidden_channels_pa, dropout=dropout,
+        edge_dim=NB_INTER_BOND_FTS)
 
     conv_dict[('protein_atoms', 'interact_with', 'ligand_atoms')] = AFP_GATE_GRUConv_InterMol(
-        (NB_ATOM_FTS, NB_ATOM_FTS), hidden_channels_la, edge_dim=1,
-        heads=heads, dropout=dropout, add_self_loops=False)
+        (NB_ATOM_FTS, NB_ATOM_FTS), hidden_channels_la, dropout=dropout,
+        edge_dim=NB_INTER_BOND_FTS)
     return conv_dict
 
 
-def get_het_conv_layer(hidden_channels_pa: int,
-                       hidden_channels_la: int,
+def get_het_conv_layer(list_hidden_channels_pa: List[int],
+                       list_hidden_channels_la: List[int],
                        heads: int = 1,
                        dropout: float = 0.0) -> Dict:
     """Produce a dictionnary for heterogeneous graph convolution. Used to create the following layers of our network
 
     Args:
-        hidden_channels_pa (int): The input channels size for the protein
-        hidden_channels_la (int): The input channels size for the ligand
+        list_hidden_channels_pa (List[int]): The channels sizes for the protein
+        list_hidden_channels_la (List[int]): The channels sizes for the ligand
         heads (int, optional): NUmber of heads. Defaults to 1.
         dropout (float, optional): Dropout rate. Defaults to 0.0.
 
     Returns:
         Dict: A dictionnary containing the layer
     """
-    conv_dict = {}
-    gatconv_hidden_channels_pa = hidden_channels_pa // heads
-    gatconv_hidden_channels_la = hidden_channels_la // heads
+    list_dico = []
+    for in_channels_pa, in_channels_la, hidden_channels_pa, hidden_channels_la in zip(list_hidden_channels_pa[:-1], list_hidden_channels_la[:-1], list_hidden_channels_pa[1:], list_hidden_channels_la[1:]):
+        conv_dict = {}
 
-    conv_dict[('protein_atoms', 'linked_to', 'protein_atoms')] = AFP_GATGRUConv_IntraMol(
-        hidden_channels_pa, gatconv_hidden_channels_pa, hidden_channels_pa,
-        edge_dim=None, heads=heads, dropout=dropout, add_self_loops=False)
+        conv_dict[('protein_atoms', 'linked_to', 'protein_atoms')] = AFP_GATGRUConv_IntraMol(
+            in_channels_pa, hidden_channels_pa, hidden_channels_pa,
+            edge_dim=None, heads=heads, dropout=dropout)
 
-    conv_dict[('ligand_atoms', 'linked_to', 'ligand_atoms')] = AFP_GATGRUConv_IntraMol(
-        hidden_channels_la, gatconv_hidden_channels_la, hidden_channels_la,
-        edge_dim=None, heads=heads, dropout=dropout, add_self_loops=False)
+        conv_dict[('ligand_atoms', 'linked_to', 'ligand_atoms')] = AFP_GATGRUConv_IntraMol(
+            in_channels_la, hidden_channels_la, hidden_channels_la,
+            edge_dim=None, heads=heads, dropout=dropout)
 
-    conv_dict[('ligand_atoms', 'interact_with', 'protein_atoms')] = AFP_GATGRUConv_InterMol(
-        (hidden_channels_la,
-         hidden_channels_pa), gatconv_hidden_channels_pa, hidden_channels_pa,
-        edge_dim=None, heads=heads, dropout=dropout, add_self_loops=False)
+        conv_dict[('ligand_atoms', 'interact_with', 'protein_atoms')] = AFP_GATGRUConv_InterMol(
+            (in_channels_la,
+             in_channels_pa), hidden_channels_pa, hidden_channels_pa,
+            edge_dim=None, heads=heads, dropout=dropout)
 
-    conv_dict[('protein_atoms', 'interact_with', 'ligand_atoms')] = AFP_GATGRUConv_InterMol(
-        (hidden_channels_pa,
-         hidden_channels_la), gatconv_hidden_channels_la, hidden_channels_la,
-        edge_dim=None, heads=heads, dropout=dropout, add_self_loops=False)
-    return conv_dict
+        conv_dict[('protein_atoms', 'interact_with', 'ligand_atoms')] = AFP_GATGRUConv_InterMol(
+            (in_channels_pa,
+             in_channels_la), hidden_channels_la, hidden_channels_la,
+            edge_dim=None, heads=heads, dropout=dropout)
+        list_dico.append(conv_dict)
+    return list_dico
 
 
 class HeteroAFP_Atomic(torch.nn.Module):
@@ -93,8 +92,8 @@ class HeteroAFP_Atomic(torch.nn.Module):
     """
 
     def __init__(self,
-                 hidden_channels_pa: int,
-                 hidden_channels_la: int,
+                 list_hidden_channels_pa: List[int],
+                 list_hidden_channels_la: List[int],
                  num_layers: int,
                  dropout: float,
                  heads: int,
@@ -103,8 +102,8 @@ class HeteroAFP_Atomic(torch.nn.Module):
         """Construct the atomic embedding part
 
         Args:
-            hidden_channels_pa (int): The input channels size for the protein
-            hidden_channels_la (int): The input channels size for the ligand
+            list_hidden_channels_pa (List[int]): The channels sizes for the protein
+            list_hidden_channels_la (List[int]): The channels sizes for the ligand
             num_layers (int): The number of layers
             dropout (float): Dropout rate
             heads (int): Number of heads
@@ -113,17 +112,21 @@ class HeteroAFP_Atomic(torch.nn.Module):
         """
         super().__init__()
         first_layer_dict = get_het_conv_first_layer(
-            hidden_channels_pa, hidden_channels_la, heads, dropout)
+            list_hidden_channels_pa[0], list_hidden_channels_la[0], dropout)
+        list_other_layer_dict = get_het_conv_layer(
+            list_hidden_channels_pa, list_hidden_channels_la, heads, dropout)
         if verbose:
             print(first_layer_dict)
-        other_layer_dict = get_het_conv_layer(
-            hidden_channels_pa, hidden_channels_la, heads, dropout)
+            print('--\n')
+            for dico in list_other_layer_dict:
+                print(dico)
+                print('--\n')
         self.conv_list = torch.nn.ModuleList(
             [HeteroConv(first_layer_dict, aggr=hetero_aggr)])
         self.num_layers = num_layers
-        for _ in range(num_layers-1):
+        for i in range(num_layers - 1):
             self.conv_list.append(HeteroConv(
-                other_layer_dict, aggr=hetero_aggr))
+                list_other_layer_dict[i], aggr=hetero_aggr))
 
     def forward(self, x: Dict, edge_index: Dict,
                 edge_attr: Dict) -> Dict:
@@ -172,19 +175,17 @@ class AFP_Hetero_Molecular(torch.nn.Module):
             heads (int): Number of heads
         """
         super().__init__()
-        self.gcn_pa = self.gcn_pr = self.gcn_la = None
-        self.lin_pa = self.lin_pr = self.lin_la = None
+        self.gcn_pa = self.gcn_la = None
+        self.lin_pa = self.lin_la = None
         self.num_timesteps = num_timesteps
 
-        gat_hidden_channels_pa = hidden_channels_pa // heads
         self.gcn_pa = AFP_GATGRUConvMol(
-            hidden_channels_pa, gat_hidden_channels_pa, hidden_channels_pa,
+            hidden_channels_pa, hidden_channels_pa, hidden_channels_pa,
             dropout, None, heads)
         self.lin_pa = torch.nn.Linear(hidden_channels_pa, out_channels_pa)
 
-        gat_hidden_channels_la = hidden_channels_la // heads
         self.gcn_la = AFP_GATGRUConvMol(
-            hidden_channels_la, gat_hidden_channels_la, hidden_channels_la,
+            hidden_channels_la, hidden_channels_la, hidden_channels_la,
             dropout, None, heads)
         self.lin_la = torch.nn.Linear(hidden_channels_la, out_channels_la)
 
@@ -199,7 +200,7 @@ class AFP_Hetero_Molecular(torch.nn.Module):
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: The molecular embedding of (protein, ligand)
         """
-        for t in range(self.num_timesteps):
+        for _ in range(self.num_timesteps):
             x_dict['pa_embedding'] = self.gcn_pa(x_dict['protein_atoms'],
                                                  x_dict['pa_embedding'],
                                                  edge_index_dict['pa_embedding'])
@@ -216,38 +217,41 @@ class BG_LPS(torch.nn.Module):
     """
 
     def __init__(self,
-                 hidden_channels_pa: int,
-                 hidden_channels_la: int,
+                 list_hidden_channels_pa: List[int],
+                 list_hidden_channels_la: List[int],
                  num_layers: int,
                  hetero_aggr: str,
                  mlp_channels: List[int],
                  num_timesteps: int,
                  dropout: float,
-                 heads: int):
+                 heads: int,
+                 verbose: bool = False):
         """Construct the model
 
         Args:
-            hidden_channels_pa (int): The size of channels for the protein part
-            hidden_channels_la (int): The size of channels for the ligand part
+            list_hidden_channels_pa (List[int]): The sizes of channels for the protein part
+            list_hidden_channels_la (List[int]): The sizes of channels for the ligand part
             num_layers (int): The number of layers
             hetero_aggr (str): How the hetero aggregation is did
             mlp_channels (List[int]): List of final MLP channels size
             num_timesteps (int): Number of timestep for molecular embedding
             dropout (float): Dropout rate
             heads (int): Number of heads
+            verbose (bool, optional): Verbose. Defaults to False.
         """
         super().__init__()
         self.gcn_atm = HeteroAFP_Atomic(
-            hidden_channels_pa=hidden_channels_pa,
-            hidden_channels_la=hidden_channels_la,
+            list_hidden_channels_pa=list_hidden_channels_pa,
+            list_hidden_channels_la=list_hidden_channels_la,
             num_layers=num_layers,
             dropout=dropout,
             heads=heads,
-            hetero_aggr=hetero_aggr)
-        self.gcn_mol = AFP_Hetero_Molecular(hidden_channels_pa=hidden_channels_pa,
-                                            hidden_channels_la=hidden_channels_la,
-                                            out_channels_pa=hidden_channels_pa,
-                                            out_channels_la=hidden_channels_la,
+            hetero_aggr=hetero_aggr,
+            verbose=verbose)
+        self.gcn_mol = AFP_Hetero_Molecular(hidden_channels_pa=list_hidden_channels_pa[-1],
+                                            hidden_channels_la=list_hidden_channels_la[-1],
+                                            out_channels_pa=list_hidden_channels_pa[-1],
+                                            out_channels_la=list_hidden_channels_la[-1],
                                             num_timesteps=num_timesteps,
                                             dropout=dropout,
                                             heads=heads)
