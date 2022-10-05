@@ -9,7 +9,7 @@ from layers.bipartite_afp_layers import (AFP_GATE_GRUConv_InterMol,
                                          AFP_GATGRUConvMol, molecular_pooling)
 from torch_geometric.nn import HeteroConv
 
-NB_ATOM_FTS = 39
+NB_ATOM_FTS = 23
 NB_INTRA_BOND_FTS = 6
 NB_INTER_BOND_FTS = 6
 

@@ -73,7 +73,7 @@ def atom_type_one_hot(atomic_num: int) -> List[int]:
     return one_hot
 
 
-def atom_hyb_one_hot(hybridization: int) -> List[int]:
+def atom_hybridization_one_hot(hybridization: int) -> List[int]:
     """"Returns the one-hot encoded atom hybridization [other, sp, sp2, sp3, sq. planar, trig. bipy, octahedral]
 
     Args:
@@ -136,14 +136,14 @@ def get_molecule_properties(mol: Molecule) -> Tuple[List, List, List, List]:
         pybel_mol (Molecule): A ODDT Molecule
 
     Returns:
-        Tuple[List, List, List, List]: (The atoms' properties, the atoms' position,
+        Tuple[List, List, List]: (The atoms' properties,
             the edge index, the edge attr)
     """
     # oh_ means one-hot encoded
     oh_atom_type = np.array(
         list(map(atom_type_one_hot, mol.atom_dict['atomicnum'].tolist())))
     oh_hybridization = np.array(
-        list(map(atom_hyb_one_hot, mol.atom_dict['hybridization'].tolist())))
+        list(map(atom_hybridization_one_hot, mol.atom_dict['hybridization'].tolist())))
     partial_charge = mol.atom_dict['charge'].reshape(-1, 1)
     hydrophobic = mol.atom_dict['ishydrophobe'].reshape(-1, 1)
     isaromatic = mol.atom_dict['isaromatic'].reshape(-1, 1)
@@ -153,27 +153,13 @@ def get_molecule_properties(mol: Molecule) -> Tuple[List, List, List, List]:
 
     # is atom H-bond donor Hydrogen
     isdonorh = mol.atom_dict['isdonorh'].reshape(-1, 1)
-    ismetal = mol.atom_dict['ismetal'].reshape(-1, 1)
     isminus = mol.atom_dict['isminus'].reshape(-1, 1)
     isplus = mol.atom_dict['isplus'].reshape(-1, 1)
-    ishalogen = mol.atom_dict['ishalogen'].reshape(-1, 1)
-
-    list_atom_heavy_degree = []
-    list_atom_hetero_degree = []
-    for atom in mol:
-        ob_atom = atom.OBAtom
-        list_atom_heavy_degree += [atom_degree_one_hot(ob_atom.GetHvyDegree())]
-        list_atom_hetero_degree += [atom_degree_one_hot(ob_atom.GetHeteroDegree())]
-
-    array_atom_heavy_degree = np.array(list_atom_heavy_degree)
-    array_atom_hetero_degree = np.array(list_atom_hetero_degree)
 
     atom_properties_list = np.concatenate((oh_atom_type, oh_hybridization,
                                            partial_charge, hydrophobic,
                                            isaromatic, isacceptor, isdonor,
-                                           isdonorh, ismetal, isminus, isplus,
-                                           ishalogen, array_atom_heavy_degree,
-                                           array_atom_hetero_degree), axis=1).tolist()
+                                           isdonorh, isminus, isplus), axis=1).tolist()
     edge_index = [[], []]
     edge_attr = []
     for bond in mol.bonds:
