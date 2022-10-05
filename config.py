@@ -36,4 +36,3 @@ weight_decay = 1e-4
 
 nb_epochs = 150
 batch_size = 64
-datamodule_num_worker = 80

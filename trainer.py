@@ -1,3 +1,4 @@
+import multiprocessing as mp
 import os.path as osp
 
 import pytorch_lightning as pl
@@ -34,7 +35,7 @@ def train():
     datamodule = data.PDBBindDataModule(root=cfg.data_path,
                                         atomic_distance_cutoff=cfg.atomic_distance_cutoff,
                                         batch_size=cfg.batch_size,
-                                        num_workers=cfg.datamodule_num_worker,
+                                        num_workers=mp.cpu_count(),
                                         only_pocket=True,
                                         sample_percent=100.0)
 

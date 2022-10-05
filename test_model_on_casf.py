@@ -1,4 +1,5 @@
 import argparse
+import multiprocessing as mp
 import os.path as osp
 from typing import Tuple
 
@@ -11,9 +12,9 @@ import config as cfg
 import data
 import model as md
 import plotters
+from casf.docking_power import docking_power_df
 from casf.ranking_power import ranking_power_pt
 from casf.scoring_power import scoring_power_pt
-from casf.docking_power import docking_power_df
 
 
 def predict_on_CASF(model: torch.nn.Module, dataloader: pyg.loader.DataLoader,
@@ -122,7 +123,7 @@ if __name__ == '__main__':
                                      only_pocket=cfg.data_use_only_pocket)
         dl_casf13 = pyg.loader.DataLoader(dt_casf13,
                                           batch_size=1,
-                                          num_workers=cfg.datamodule_num_worker)
+                                          num_workers=mp.cpu_count())
         rp, sd, nb, mae, rmse, sp, ke, pi = predict_on_CASF(
             model=model, dataloader=dl_casf13, nb_in_cluster_ranking=3,
             csv_score_path=csv_13_path,
@@ -145,7 +146,7 @@ if __name__ == '__main__':
                                      only_pocket=cfg.data_use_only_pocket)
         dl_casf16 = pyg.loader.DataLoader(dt_casf16,
                                           batch_size=1,
-                                          num_workers=cfg.datamodule_num_worker)
+                                          num_workers=mp.cpu_count())
         rp, sd, nb, mae, rmse, sp, ke, pi = predict_on_CASF(
             model=model, dataloader=dl_casf16, nb_in_cluster_ranking=5,
             csv_score_path=csv_16_path,
@@ -158,7 +159,7 @@ if __name__ == '__main__':
                                             only_pocket=cfg.data_use_only_pocket)
             dl_docking_power = pyg.loader.DataLoader(dt_dp,
                                                     batch_size=1,
-                                                    num_workers=cfg.datamodule_num_worker)
+                                                    num_workers=mp.cpu_count())
             docking_power_res_dict = docking_power(model=model,
                                                 dataloader=dl_docking_power,
                                                 rmsd_cutoff=args.docking_power_cutoff)
