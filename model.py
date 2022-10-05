@@ -52,9 +52,9 @@ class Model(pl.LightningModule):
         """
         super().__init__()
         self.save_hyperparameters()
-        if type(hidden_channels_pa) == int:
+        if isinstance(hidden_channels_pa, int):
             hidden_channels_pa = num_layers * [hidden_channels_pa]
-        if type(hidden_channels_la) == int:
+        if isinstance(hidden_channels_la, int):
             hidden_channels_la = num_layers * [hidden_channels_la]
         if len(hidden_channels_pa) != num_layers:
             print(
