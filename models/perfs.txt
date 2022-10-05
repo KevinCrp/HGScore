@@ -1,39 +1,38 @@
-CASF 13
+CASF-13
         Scoring Power:
-                Rp 0.757
+                Rp 0.758
                 SD 1.47
                 Nb Favorable 195.0
-                MAE 1.14
-                RMSE 1.47
+                MAE 1.17
+                RMSE 1.46
         Ranking Power:
-                Rho 0.62
-                Tau 0.59
-                PI 0.62
-CASF 16
+                Rho 0.67
+                Tau 0.64
+                PI 0.67
+CASF-16
         Scoring Power:
-                Rp 0.84
-                SD 1.18
+                Rp 0.85
+                SD 1.15
                 Nb Favorable 285.0
-                MAE 0.91
-                RMSE 1.18
+                MAE 0.89
+                RMSE 1.14
         Ranking Power:
-                Rho 0.63
-                Tau 0.56
-                PI 0.65
+                Rho 0.74
+                Tau 0.65
+                PI 0.76
         Docking Power:
-        DP cutoff: 2.0
-                Sp2 0.135
-                Sp3 0.172
-                Sp4 0.198
-                Sp5 0.221
-                Sp6 0.228
-                Sp7 0.234
-                Sp8 0.243
-                Sp9 0.257
-                Sp10 0.262
+                Sp2 0.177
+                Sp3 0.218
+                Sp4 0.245
+                Sp5 0.288
+                Sp6 0.316
+                Sp7 0.323
+                Sp8 0.331
+                Sp9 0.344
+                Sp10 0.35
                 TOP1
-                        Success 105 ; Success Rate 36.84210526315789
+                        Success 114 ; Success Rate 40.0
                 TOP2
-                        Success 144 ; Success Rate 50.526315789473685
+                        Success 157 ; Success Rate 55.08771929824562
                 TOP3
-                        Success 177 ; Success Rate 62.10526315789474
+                        Success 189 ; Success Rate 66.3157894736842
