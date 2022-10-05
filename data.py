@@ -528,14 +528,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-cutoff', '-c',
                         type=float,
-                        help='If not set, config.py atomic_distance_cutoff is used')
+                        help='The cutoff to consider a link between a protein-ligand atom pair',
+                        default=4.0)
     parser.add_argument('-docking_power', '-dp',
                         action='store_true',
                         help='Flag allowing to create the docking power dataset')
     args = parser.parse_args()
     atomic_distance_cutoff = args.cutoff
-    if atomic_distance_cutoff is None:
-        atomic_distance_cutoff = cfg.atomic_distance_cutoff
     PDBBindDataset(root=cfg.data_path,
                    stage='train',
                    atomic_distance_cutoff=atomic_distance_cutoff,

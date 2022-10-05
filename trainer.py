@@ -1,3 +1,4 @@
+import argparse
 import multiprocessing as mp
 import os.path as osp
 
@@ -10,7 +11,7 @@ import data
 import model as md
 
 
-def train():
+def train(atomic_distance_cutoff: float):
     gpus = torch.cuda.device_count()
     use_gpu = gpus > 0
     strategy = 'ddp' if use_gpu else None
@@ -33,7 +34,7 @@ def train():
     ), checkpoint_callback, early_stopping_callback]
 
     datamodule = data.PDBBindDataModule(root=cfg.data_path,
-                                        atomic_distance_cutoff=cfg.atomic_distance_cutoff,
+                                        atomic_distance_cutoff=atomic_distance_cutoff,
                                         batch_size=cfg.batch_size,
                                         num_workers=mp.cpu_count(),
                                         only_pocket=True,
@@ -51,7 +52,7 @@ def train():
         weight_decay=cfg.weight_decay,
         plot_path=version_path,
         num_timesteps=cfg.num_timesteps,
-        str_for_hparams="InterMol length: {}A".format(cfg.atomic_distance_cutoff))
+        str_for_hparams="InterMol length: {}A".format(atomic_distance_cutoff))
 
     nb_param_trainable = model.get_nb_parameters(only_trainable=True)
     nb_param = model.get_nb_parameters(only_trainable=False)
@@ -128,4 +129,11 @@ def test_best_model_16(best_model_path: str,
 
 
 if __name__ == '__main__':
-    train()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-cutoff', '-c',
+                        type=float,
+                        help='The cutoff to consider a link between a protein-ligand atom pair',
+                        default=4.0)
+    args = parser.parse_args()
+    atomic_distance_cutoff = args.cutoff
+    train(atomic_distance_cutoff)

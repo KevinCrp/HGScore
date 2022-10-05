@@ -3,7 +3,6 @@ import os.path as osp
 
 root_path = osp.dirname(osp.realpath(__file__))
 data_use_only_pocket = True
-atomic_distance_cutoff = 4.0
 
 # Change this line is necessary
 data_path = osp.join(root_path, 'data')

@@ -83,7 +83,7 @@ def docking_power(model: torch.nn.Module,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-checkpoint_path', '-c', type=str,
+    parser.add_argument('-checkpoint_path', '-ckpt', type=str,
                         help='Path to the torch Checkpoint', required=True)
     parser.add_argument('-plot', '-p', action='store_true',
                         help='Do plot')
@@ -91,6 +91,10 @@ if __name__ == '__main__':
                         help='Test on CASF Core set v2013')
     parser.add_argument('-casf_16', action='store_true',
                         help='Test on CASF Core set v2016')
+    parser.add_argument('-cutoff', '-c',
+                        type=float,
+                        help='The cutoff to consider a link between a protein-ligand atom pair',
+                        default=4.0)
     parser.add_argument('-docking_power', '-dp',
                         action='store_true',
                         help='Flag allowing to compute the docking power')
@@ -103,7 +107,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     model_path = args.checkpoint_path
-
+    atomic_distance_cutoff = args.cutoff
     plot_path = osp.split(model_path)
     plot_13_path = osp.join(
         plot_path[0], plot_path[1].replace('.', '_') + '_plot_13.png')
@@ -119,7 +123,7 @@ if __name__ == '__main__':
     if args.casf_13:
         print("CASF 2013 Testing ...")
         dt_casf13 = data.CASFDataset(root=cfg.data_path, year='13',
-                                     atomic_distance_cutoff=cfg.atomic_distance_cutoff,
+                                     atomic_distance_cutoff=atomic_distance_cutoff,
                                      only_pocket=cfg.data_use_only_pocket)
         dl_casf13 = pyg.loader.DataLoader(dt_casf13,
                                           batch_size=1,
@@ -142,7 +146,7 @@ if __name__ == '__main__':
     if args.casf_16:
         print("CASF 2016 Testing ...")
         dt_casf16 = data.CASFDataset(root=cfg.data_path, year='16',
-                                     atomic_distance_cutoff=cfg.atomic_distance_cutoff,
+                                     atomic_distance_cutoff=atomic_distance_cutoff,
                                      only_pocket=cfg.data_use_only_pocket)
         dl_casf16 = pyg.loader.DataLoader(dt_casf16,
                                           batch_size=1,
@@ -155,7 +159,7 @@ if __name__ == '__main__':
         if args.docking_power:
             dt_dp = data.DockingPower_Dataset(root=cfg.data_path,
                                             year='16',
-                                            atomic_distance_cutoff=cfg.atomic_distance_cutoff,
+                                            atomic_distance_cutoff=atomic_distance_cutoff,
                                             only_pocket=cfg.data_use_only_pocket)
             dl_docking_power = pyg.loader.DataLoader(dt_dp,
                                                     batch_size=1,
