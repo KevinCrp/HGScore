@@ -30,7 +30,7 @@ tensorboard --logdir experiments/BG_PLS
 ````
 10. ReTest a trained model on CASF 13 & 16 with `test_model_on_casf.py`
 ````bash
-usage: test_model_on_casf.py [-h] -checkpoint_path CHECKPOINT_PATH [-plot] [-casf_13] [-casf_16]
+usage: test_model_on_casf.py [-h] -checkpoint_path CHECKPOINT_PATH [-plot] [-casf_13] [-casf_16] [-docking_power] [-docking_power_cutoff DOCKING_POWER_CUTOFF]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -39,6 +39,10 @@ optional arguments:
   -plot, -p             Do plot
   -casf_13              Test on CASF Core set v2013
   -casf_16              Test on CASF Core set v2016
+  -docking_power, -dp   Flag allowing to compute the docking power
+  -docking_power_cutoff DOCKING_POWER_CUTOFF, -dpc DOCKING_POWER_CUTOFF
+                        The RMSD cutoff (in angstrom) to define near-native
+                        docking pose for Docking Power (defaults to 2.0)
 ````
 ````bash
 python test_model_on_casf.py -c models/model.ckpt -p -casf_13 -casf_16

@@ -13,6 +13,7 @@ import model as md
 import plotters
 from casf.ranking_power import ranking_power_pt
 from casf.scoring_power import scoring_power_pt
+from casf.docking_power import docking_power_df
 
 
 def predict_on_CASF(model: torch.nn.Module, dataloader: pyg.loader.DataLoader,
@@ -60,6 +61,25 @@ def predict_on_CASF(model: torch.nn.Module, dataloader: pyg.loader.DataLoader,
     return rp, sd, nb, mae, rmse, sp, ke, pi
 
 
+def docking_power(model: torch.nn.Module,
+                  dataloader: pyg.loader.DataLoader,
+                  rmsd_cutoff: float):
+    preds = []
+    rmsd = []
+    pdb_id = []
+    decoy_id = []
+    for d in tqdm.tqdm(dataloader):
+        preds += [model.predict(d)]
+        rmsd += [d.rmsd.item()]
+        pdb_id += d.pdb_id
+        decoy_id += d.decoy_id
+    zipped_list = list(zip(pdb_id, decoy_id, rmsd, preds))
+    df = pd.DataFrame(zipped_list,
+                      columns=['pdb_id', '#code', 'rmsd', 'score'])
+    return docking_power_df(docking_power_df=df,
+                            rmsd_cutoff=rmsd_cutoff)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-checkpoint_path', '-c', type=str,
@@ -70,6 +90,14 @@ if __name__ == '__main__':
                         help='Test on CASF Core set v2013')
     parser.add_argument('-casf_16', action='store_true',
                         help='Test on CASF Core set v2016')
+    parser.add_argument('-docking_power', '-dp',
+                        action='store_true',
+                        help='Flag allowing to compute the docking power')
+    parser.add_argument('-docking_power_cutoff', '-dpc',
+                        type=float,
+                        default=2.0,
+                        help='The RMSD cutoff (in angstrom) to define near-native docking pose for Docking Power (defaults to 2.0)')
+
 
     args = parser.parse_args()
 
@@ -122,6 +150,18 @@ if __name__ == '__main__':
             model=model, dataloader=dl_casf16, nb_in_cluster_ranking=5,
             csv_score_path=csv_16_path,
             do_plot=args.plot, plot_path=plot_16_path)
+        
+        if args.docking_power:
+            dt_dp = data.DockingPower_Dataset(root=cfg.data_path,
+                                            year='16',
+                                            atomic_distance_cutoff=cfg.atomic_distance_cutoff,
+                                            only_pocket=cfg.data_use_only_pocket)
+            dl_docking_power = pyg.loader.DataLoader(dt_dp,
+                                                    batch_size=1,
+                                                    num_workers=cfg.datamodule_num_worker)
+            docking_power_res_dict = docking_power(model=model,
+                                                dataloader=dl_docking_power,
+                                                rmsd_cutoff=args.docking_power_cutoff)
 
         print("\tScoring Power:")
         print("\t\tRp {}".format(round(rp, 3)))
@@ -133,3 +173,25 @@ if __name__ == '__main__':
         print("\t\tRho {}".format(round(sp, 2)))
         print("\t\tTau {}".format(round(ke, 2)))
         print("\t\tPI {}".format(round(pi, 2)))
+        
+        if args.docking_power:
+            print("\tDocking Power:")
+            print("\t\tSp2 {}".format(docking_power_res_dict['sp2']))
+            print("\t\tSp3 {}".format(docking_power_res_dict['sp3']))
+            print("\t\tSp4 {}".format(docking_power_res_dict['sp4']))
+            print("\t\tSp5 {}".format(docking_power_res_dict['sp5']))
+            print("\t\tSp6 {}".format(docking_power_res_dict['sp6']))
+            print("\t\tSp7 {}".format(docking_power_res_dict['sp7']))
+            print("\t\tSp8 {}".format(docking_power_res_dict['sp8']))
+            print("\t\tSp9 {}".format(docking_power_res_dict['sp9']))
+            print("\t\tSp10 {}".format(docking_power_res_dict['sp10']))
+            print("\t\tTOP1")
+            print("\t\t\tSuccess {} ; Success Rate {}".format(docking_power_res_dict['top1_correct'],
+                                                            docking_power_res_dict['top1_success']))
+            print("\t\tTOP2")
+            print("\t\t\tSuccess {} ; Success Rate {}".format(docking_power_res_dict['top2_correct'],
+                                                            docking_power_res_dict['top2_success']))
+            print("\t\tTOP3")
+            print("\t\t\tSuccess {} ; Success Rate {}".format(docking_power_res_dict['top3_correct'],
+                                                            docking_power_res_dict['top3_success']))
+
