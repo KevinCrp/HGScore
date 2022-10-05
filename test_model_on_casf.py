@@ -14,7 +14,7 @@ import model as md
 import plotters
 from casf.docking_power import docking_power_df
 from casf.ranking_power import ranking_power_pt
-from casf.scoring_power import scoring_power_pt
+from casf.scoring_power import scoring_power
 
 
 def predict_on_CASF(model: torch.nn.Module, dataloader: pyg.loader.DataLoader,
@@ -53,7 +53,7 @@ def predict_on_CASF(model: torch.nn.Module, dataloader: pyg.loader.DataLoader,
     targets = torch.tensor(targets)
     clusters = torch.tensor(clusters)
 
-    rp, sd, nb, mae, rmse = scoring_power_pt(preds, targets)
+    rp, sd, nb, mae, rmse = scoring_power(preds=preds, targets=targets)
     sp, ke, pi = ranking_power_pt(
         preds, targets, nb_in_cluster_ranking, clusters)
     plotters.save_predictions(pdb_id, preds, csv_score_path)

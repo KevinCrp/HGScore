@@ -1,6 +1,6 @@
 from math import nan
 import math
-from typing import List, Tuple
+from typing import  Tuple
 
 import numpy as np
 import pandas as pd
@@ -10,37 +10,29 @@ from sklearn import linear_model
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 
-def scoring_power_pt(preds: torch.Tensor, target: torch.Tensor) -> Tuple[float, float, float, float, float]:
-    """Compute the CASF scoring power from PyTorch Tensors
-
-    Args:
-        preds (torch.Tensor): The predicted tensor
-        target (torch.Tensor): The real tensor
+def scoring_power(**kwargs) -> Tuple[float, float, float, float, float]:
+    """Compute the CASF scoring power, from two tensor (preds and targets)
+        or from a list including both preds and targets
 
     Returns:
         Tuple[float, float, float, float, float]: Pearson Correlation coef, standard deviation, number of favorable items,
                                     Mean Absolute error, root mean squared error
-    """
-    t = torch.cat((preds.view(-1, 1), target.view(-1, 1)), -1).cpu().numpy()
-    df = pd.DataFrame(t, columns=['score', 'logKa'])
-    return scoring_power(df)
+    """    
+    preds = kwargs.get('preds', None)
+    targets = kwargs.get('targets', None)
+    preds_target_lists = kwargs.get('preds_target_list', None)
+
+    if preds is not None and targets is not None:
+        t = torch.cat((preds.view(-1, 1), targets.view(-1, 1)), -1).cpu().numpy()
+        df = pd.DataFrame(t, columns=['score', 'logKa'])
+    elif preds_target_lists is not None:
+        df = pd.DataFrame(preds_target_lists, columns=['score', 'logKa'])
+    else:
+        return nan
+    return scoring_power_compute(df) 
 
 
-def scoring_power_list(preds_target_list: List) -> Tuple[float, float, float, float, float]:
-    """Compute the CASF scoring power from a 2D List containing predictions and real values
-
-    Args:
-        preds_target_list (List): A 2D list
-
-    Returns:
-        Tuple[float, float, float, float, float]: Pearson Correlation coef, standard deviation, number of favorable items,
-                                    Mean Absolute error, root mean squared error
-    """
-    df = pd.DataFrame(preds_target_list, columns=['score', 'logKa'])
-    return scoring_power(df)
-
-
-def scoring_power(df: pd.DataFrame) -> Tuple[float, float, float, float, float]:
+def scoring_power_compute(df: pd.DataFrame) -> Tuple[float, float, float, float, float]:
     """Compute the CASF scoring power from a pandas Dataframe, adapted from the scoring_power 2016 code
 
     Args:

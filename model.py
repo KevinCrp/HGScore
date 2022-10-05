@@ -10,7 +10,7 @@ import torchmetrics.functional as tmf
 
 import plotters
 from casf.ranking_power import ranking_power_pt
-from casf.scoring_power import scoring_power_pt
+from casf.scoring_power import scoring_power
 from networks.bipartite_afp import BG_LPS
 
 
@@ -252,8 +252,8 @@ class Model(pl.LightningModule):
                 cluster
             all_pdb_id (List): For each complex, the correspoding PDB id
         """
-        pearson, sd, nb_favorable, mae, rmse = scoring_power_pt(
-            all_preds, all_targets)
+        pearson, sd, nb_favorable, mae, rmse = scoring_power(
+            preds=all_preds, targets=all_targets)
         spearman, kendall, pi = ranking_power_pt(
             all_preds, all_targets, self.ranking_nb_in_clusters, all_clusters)
         plotters.plot_linear_reg(all_preds, all_targets,
