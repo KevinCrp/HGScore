@@ -7,8 +7,7 @@ import torch.nn.functional as F
 import torch_geometric as pyg
 from torch import Tensor
 from torch.nn import Linear, Parameter
-from torch_geometric.nn import \
-    GATv2Conv as GATConv  # import GATConv or GATv2Conv
+from torch_geometric.nn import GATv2Conv
 from torch_geometric.nn import MessagePassing
 from torch_geometric.typing import Adj, OptTensor
 from torch_geometric.utils import softmax
@@ -219,7 +218,7 @@ class AFP_GATGRUConv_IntraMol(nn.Module):
         super().__init__()
         self.dropout = dropout
         self.lin1 = Linear(in_channels, out_channels_gat)
-        self.gat_conv = GATConv(out_channels_gat, out_channels_gat,
+        self.gat_conv = GATv2Conv(out_channels_gat, out_channels_gat,
                                 dropout=dropout,
                                 edge_dim=edge_dim,
                                 add_self_loops=add_self_loops,
@@ -274,7 +273,7 @@ class AFP_GATGRUConv_InterMol(nn.Module):
         in_channels_src, in_channels_dst = in_channels
         self.lin1_src = Linear(in_channels_src, out_channels_gat)
         self.lin1_dst = Linear(in_channels_dst, out_channels_gat)
-        self.gat_conv = GATConv(out_channels_gat, out_channels_gat,
+        self.gat_conv = GATv2Conv(out_channels_gat, out_channels_gat,
                                 dropout=dropout,
                                 edge_dim=edge_dim,
                                 add_self_loops=add_self_loops,
@@ -329,7 +328,7 @@ class AFP_GATGRUConvMol(nn.Module):
         """
         super().__init__()
         self.dropout = dropout
-        self.gat_conv = GATConv(in_channels,
+        self.gat_conv = GATv2Conv(in_channels,
                                 out_channels_gat,
                                 dropout=dropout,
                                 edge_dim=edge_dim,
