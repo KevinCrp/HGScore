@@ -51,7 +51,8 @@ def create_pyg_graph(protein_path: str,
         decoy_id (str, optional): Contains the ligand id for docking power. Defaults to None.
 
     Returns:
-        pyg.data.HeteroData
+        pyg.data.HeteroData, Containing several sets of nodes, and different sets of
+            edges that can link nodes of the same set or of different sets
     """
     (protein_atm_x,
      ligand_atm_x,
@@ -260,7 +261,7 @@ class PDBBindDataModule(pl.LightningDataModule):
                  atomic_distance_cutoff: float,
                  batch_size: int = 1, num_workers: int = 1,
                  only_pocket: bool = False, sample_percent: bool = 100.0):
-        """_summary_
+        """Allows to encompass all the PDBBind sub datasets used in order to use them with PyTorchLightning
 
         Args:
             root (str): Path to the data directory.

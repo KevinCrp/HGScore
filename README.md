@@ -9,7 +9,7 @@
 python split_pdbbind.py
 ````
 4. Now in *data/* there are four csv files (*[train|val|casf13|casf16].csv*)
-5. Use `data.py` to create all graphs
+5. Use `python data.py` to create all graphs
 ````bash
 usage: data.py [-h] [-cutoff CUTOFF]
 
