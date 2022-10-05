@@ -190,7 +190,7 @@ class PDBBindDataset(pyg.data.InMemoryDataset):
                               self.only_pocket,
                              self.df.loc[pdb_id]['target']))
             i += 1
-        pool = mp.Pool(cfg.preprocessing_nb_cpu)
+        pool = mp.Pool(mp.cpu_count())
         data_path_list = list(pool.starmap(process_graph, pool_args))
         data_list = []
         for p in data_path_list:
@@ -245,7 +245,7 @@ class CASFDataset(pyg.data.InMemoryDataset):
                              self.df.loc[pdb_id]['cluster'],
                              pdb_id))
             i += 1
-        pool = mp.Pool(cfg.preprocessing_nb_cpu)
+        pool = mp.Pool(mp.cpu_count())
         data_path_list = list(pool.starmap(process_graph, pool_args))
         data_list = []
         for p in data_path_list:
@@ -474,7 +474,7 @@ class DockingPower_Dataset(pyg.data.InMemoryDataset):
                                   self.only_pocket,
                                   pdb_id, mol2_dict[key][1], key))
                 i += 1
-        pool = mp.Pool(cfg.preprocessing_nb_cpu)
+        pool = mp.Pool(mp.cpu_count())
         data_path_list = list(pool.starmap(process_graph_for_docking_power,
                                            pool_args))
         data_list = []

@@ -19,7 +19,6 @@ if not osp.isdir(experiments_path):
     os.mkdir(experiments_path)
 
 # The following lines may be change
-preprocessing_nb_cpu = 60
 
 hidden_channels_pa = 128
 hidden_channels_la = 128
