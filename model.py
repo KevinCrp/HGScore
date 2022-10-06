@@ -229,7 +229,7 @@ class Model(pl.LightningModule):
 
     def metrics_on_test(self, avg_loss: torch.Tensor, all_preds: torch.Tensor,
                         all_targets: torch.Tensor, all_clusters: torch.Tensor,
-                        all_pdb_id: List):
+                        all_pdb_id: List[str]):
         """Computes Scoring and Ranking powers, logs metrics and plots them
 
         Args:
@@ -238,7 +238,7 @@ class Model(pl.LightningModule):
             all_targets (torch.Tensor): All targets
             all_clusters (torch.Tensor): For each complex, the corresponding
                 cluster
-            all_pdb_id (List): For each complex, the correspoding PDB id
+            all_pdb_id (List[str]): For each complex, the correspoding PDB id
         """
         pearson, sd, nb_favorable, mae, rmse = scoring_power(
             preds=all_preds, targets=all_targets)
