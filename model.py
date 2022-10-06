@@ -265,7 +265,7 @@ class Model(pl.LightningModule):
         self.log(self.casf_name + "/kendall", kendall, sync_dist=True)
         self.log(self.casf_name + "/pi", pi, sync_dist=True)
         self.log(self.casf_name + "/nb_favorable",
-                 torch.tensor(nb_favorable), sync_dist=True)
+                 torch.tensor(nb_favorable, dtype=torch.float32), sync_dist=True)
 
     def validation_epoch_end(self, outputs: List):
         self.common_epoch_end(outputs, 'val')
