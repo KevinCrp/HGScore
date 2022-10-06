@@ -191,35 +191,23 @@ class Model(pl.LightningModule):
         self.log("ep_end_{}/r2_score".format(stage), r2, sync_dist=True)
         self.log("ep_end_{}/pearson".format(stage), pearson, sync_dist=True)
 
-    def reset_casf_test(self):
-        """Reset all names and values used in model testing
+    def set_casf_test(self, version: Union[int, str]):
+        """Reset all names and values used in model testing according to the given version
+
+        Args:
+            version (Union[int, str]): The CASF's version, must be 13 or 16
         """
-        self.casf_name = 'casf_'
+        if isinstance(version, int):
+            version = str(version)
+        self.casf_name = 'casf_' + version
+        self.reg_linear_name = 'reg_linear_' + version + '.png'
+        self.output_csv = 'scores_' + version + '.csv'
+
         self.ranking_nb_in_clusters = 0
-        self.reg_linear_name = 'reg_linear_'
-        self.output_csv = 'scores_'
-
-    def set_casf13_test(self):
-        """Set all names and values used in model testing according to CASF 13
-            Must be called before trainer.test(trained_model,
-                datamodule.casf_13_dataloader())
-        """
-        self.reset_casf_test()
-        self.casf_name += '13'
-        self.ranking_nb_in_clusters = 3
-        self.reg_linear_name += '13.png'
-        self.output_csv += '13.csv'
-
-    def set_casf16_test(self, suffix: str = ""):
-        """Set all names and values used in model testing according to CASF 16
-            Must be called before trainer.test(trained_model,
-                datamodule.casf_16_dataloader())
-        """
-        self.reset_casf_test()
-        self.casf_name += '16_' + suffix
-        self.ranking_nb_in_clusters = 5
-        self.reg_linear_name += '16_{}.png'.format(suffix)
-        self.output_csv += '16_{}.csv'.format(suffix)
+        if version == '13':
+            self.ranking_nb_in_clusters = 3
+        elif version == '16':
+            self.ranking_nb_in_clusters = 5
 
     def test_epoch_end(self, outputs: List):
         """Called after each test epoch. CASF metrics are computed and

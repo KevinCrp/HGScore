@@ -105,7 +105,7 @@ def test_best_model_13(best_model_path: str,
                          num_sanity_val_steps=0,
                          logger=logger)
     trained_model = md.Model.load_from_checkpoint(best_model_path)
-    trained_model.set_casf13_test()
+    trained_model.set_casf_test(13)
     trainer.test(trained_model, datamodule.casf_13_dataloader())
 
 
@@ -124,7 +124,7 @@ def test_best_model_16(best_model_path: str,
                          num_sanity_val_steps=0,
                          logger=logger)
     trained_model = md.Model.load_from_checkpoint(best_model_path)
-    trained_model.set_casf16_test()
+    trained_model.set_casf_test(16)
     trainer.test(trained_model, datamodule.casf_16_dataloader())
 
 
