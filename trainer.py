@@ -20,7 +20,9 @@ def train(atomic_distance_cutoff: float):
     """    
     gpus = torch.cuda.device_count()
     use_gpu = gpus > 0
+    accelerator = 'gpu' if use_gpu else None
     strategy = 'ddp' if use_gpu else None
+    devices = gpus if gpus > 0 else None
     exp_model_name = 'BG_PLS'
 
     logger = pl.loggers.TensorBoardLogger(
@@ -66,21 +68,14 @@ def train(atomic_distance_cutoff: float):
         {'nb_param_trainable': torch.tensor(nb_param_trainable)})
     logger.log_metrics({'nb_param': torch.tensor(nb_param)})
 
-    if use_gpu:
-        trainer = pl.Trainer(accelerator='gpu',
-                             devices=gpus,
-                             strategy=strategy,
-                             callbacks=callbacks,
-                             max_epochs=cfg.nb_epochs,
-                             logger=logger,
-                             log_every_n_steps=2,
-                             num_sanity_val_steps=0)
-    else:
-        trainer = pl.Trainer(callbacks=callbacks,
-                             max_epochs=cfg.nb_epochs,
-                             logger=logger,
-                             log_every_n_steps=2,
-                             num_sanity_val_steps=0)
+    trainer = pl.Trainer(accelerator=accelerator,
+                         devices=devices,
+                         strategy=strategy,
+                         callbacks=callbacks,
+                         max_epochs=cfg.nb_epochs,
+                         logger=logger,
+                         log_every_n_steps=2,
+                         num_sanity_val_steps=0)
 
     trainer.fit(model, datamodule)
 
