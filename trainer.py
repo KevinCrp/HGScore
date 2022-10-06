@@ -1,6 +1,7 @@
 import argparse
 import multiprocessing as mp
 import os.path as osp
+from typing import Union
 
 import pytorch_lightning as pl
 import torch
@@ -87,45 +88,29 @@ def train(atomic_distance_cutoff: float):
         best_model_path = list_bmp[0]
 
     print("Best Checkpoint path : ", best_model_path)
-    test_best_model_16(best_model_path, datamodule, logger)
+    test_best_model(best_model_path, datamodule, logger, 16)
 
 
 @rank_zero_only
-def test_best_model_13(best_model_path: str,
-                       datamodule: pl.LightningDataModule,
-                       logger):
-    """Test the given model on the dataloader CASF13
+def test_best_model(best_model_path: str,
+                    datamodule: pl.LightningDataModule,
+                    logger: pl.loggers.TensorBoardLogger,
+                    casf_version: Union[int, str]):
+    """Test the given model on the dataloader CASF
 
     Args:
         best_model_path (str): Path to the best checkpoint
         datamodule (pl.LightningDataModule): PL Datamodule
+        logger (pl.loggers.TensorBoardLogger): Tensorboard Logger
+        casf_version (Union[int, str]): The Casf version, must be 13 or 16.
     """
     trainer = pl.Trainer(max_epochs=1,
-                         log_every_n_steps=2,
+                         log_every_n_steps=0,
                          num_sanity_val_steps=0,
                          logger=logger)
     trained_model = md.Model.load_from_checkpoint(best_model_path)
-    trained_model.set_casf_test(13)
-    trainer.test(trained_model, datamodule.casf_13_dataloader())
-
-
-@rank_zero_only
-def test_best_model_16(best_model_path: str,
-                       datamodule: pl.LightningDataModule,
-                       logger):
-    """Test the given model on the dataloader CASF16
-
-    Args:
-        best_model_path (str): Path to the best checkpoint
-        datamodule (pl.LightningDataModule): PL Datamodule
-    """
-    trainer = pl.Trainer(max_epochs=1,
-                         log_every_n_steps=2,
-                         num_sanity_val_steps=0,
-                         logger=logger)
-    trained_model = md.Model.load_from_checkpoint(best_model_path)
-    trained_model.set_casf_test(16)
-    trainer.test(trained_model, datamodule.casf_16_dataloader())
+    trained_model.set_casf_test(casf_version)
+    trainer.test(trained_model, datamodule.casf_dataloader(casf_version))
 
 
 if __name__ == '__main__':

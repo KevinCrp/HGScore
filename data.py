@@ -3,6 +3,7 @@ import multiprocessing as mp
 import os
 import os.path as osp
 import re
+from typing import Union
 
 import pandas as pd
 import pytorch_lightning as pl
@@ -332,6 +333,15 @@ class PDBBindDataModule(pl.LightningDataModule):
                                      num_workers=self.num_workers,
                                      persistent_workers=self.persistent_workers)
 
+    def casf_dataloader(self, casf_version: Union[int, str]):
+        if isinstance(casf_version, int):
+            casf_version = str(casf_version)
+        if casf_version == '13':
+            return self.casf_13_dataloader()
+        elif casf_version == '16':
+            return self.casf_16_dataloader()
+        return None
+
     def test_dataloader(self):
         return pyg.loader.DataLoader(self.dt_casf_16,
                                      batch_size=1,
@@ -354,7 +364,7 @@ def read_decoy_rmsd(path: str):
 
 def clean_backbone_str(lines):
     for i in range(len(lines)):
-        lines[i]=lines[i].replace("BACKBONE\n", '\n')
+        lines[i] = lines[i].replace("BACKBONE\n", '\n')
     return lines
 
 
@@ -554,6 +564,6 @@ if __name__ == '__main__':
                 only_pocket=cfg.data_use_only_pocket)
     if args.docking_power:
         DockingPower_Dataset(root=cfg.data_path,
-                            year='16',
-                            atomic_distance_cutoff=atomic_distance_cutoff,
-                            only_pocket=cfg.data_use_only_pocket)
+                             year='16',
+                             atomic_distance_cutoff=atomic_distance_cutoff,
+                             only_pocket=cfg.data_use_only_pocket)
