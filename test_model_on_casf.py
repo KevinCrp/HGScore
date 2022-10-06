@@ -13,7 +13,7 @@ import data
 import model as md
 import plotters
 from casf.docking_power import docking_power_df
-from casf.ranking_power import ranking_power_pt
+from casf.ranking_power import ranking_power
 from casf.scoring_power import scoring_power
 
 
@@ -54,8 +54,8 @@ def predict_on_CASF(model: torch.nn.Module, dataloader: pyg.loader.DataLoader,
     clusters = torch.tensor(clusters)
 
     rp, sd, nb, mae, rmse = scoring_power(preds=preds, targets=targets)
-    sp, ke, pi = ranking_power_pt(
-        preds, targets, nb_in_cluster_ranking, clusters)
+    sp, ke, pi = ranking_power(
+        preds, targets, clusters, nb_in_cluster_ranking)
     plotters.save_predictions(pdb_id, preds, csv_score_path)
     if do_plot:
         plotters.plot_linear_reg(preds, targets, rp, sd, plot_path)
@@ -102,7 +102,6 @@ if __name__ == '__main__':
                         type=float,
                         default=2.0,
                         help='The RMSD cutoff (in angstrom) to define near-native docking pose for Docking Power (defaults to 2.0)')
-
 
     args = parser.parse_args()
 
@@ -155,18 +154,18 @@ if __name__ == '__main__':
             model=model, dataloader=dl_casf16, nb_in_cluster_ranking=5,
             csv_score_path=csv_16_path,
             do_plot=args.plot, plot_path=plot_16_path)
-        
+
         if args.docking_power:
             dt_dp = data.DockingPower_Dataset(root=cfg.data_path,
-                                            year='16',
-                                            atomic_distance_cutoff=atomic_distance_cutoff,
-                                            only_pocket=cfg.data_use_only_pocket)
+                                              year='16',
+                                              atomic_distance_cutoff=atomic_distance_cutoff,
+                                              only_pocket=cfg.data_use_only_pocket)
             dl_docking_power = pyg.loader.DataLoader(dt_dp,
-                                                    batch_size=1,
-                                                    num_workers=mp.cpu_count())
+                                                     batch_size=1,
+                                                     num_workers=mp.cpu_count())
             docking_power_res_dict = docking_power(model=model,
-                                                dataloader=dl_docking_power,
-                                                rmsd_cutoff=args.docking_power_cutoff)
+                                                   dataloader=dl_docking_power,
+                                                   rmsd_cutoff=args.docking_power_cutoff)
 
         print("\tScoring Power:")
         print("\t\tRp {}".format(round(rp, 3)))
@@ -178,7 +177,7 @@ if __name__ == '__main__':
         print("\t\tRho {}".format(round(sp, 2)))
         print("\t\tTau {}".format(round(ke, 2)))
         print("\t\tPI {}".format(round(pi, 2)))
-        
+
         if args.docking_power:
             print("\tDocking Power:")
             print("\t\tSp2 {}".format(docking_power_res_dict['sp2']))
@@ -192,11 +191,10 @@ if __name__ == '__main__':
             print("\t\tSp10 {}".format(docking_power_res_dict['sp10']))
             print("\t\tTOP1")
             print("\t\t\tSuccess {} ; Success Rate {}".format(docking_power_res_dict['top1_correct'],
-                                                            docking_power_res_dict['top1_success']))
+                                                              docking_power_res_dict['top1_success']))
             print("\t\tTOP2")
             print("\t\t\tSuccess {} ; Success Rate {}".format(docking_power_res_dict['top2_correct'],
-                                                            docking_power_res_dict['top2_success']))
+                                                              docking_power_res_dict['top2_success']))
             print("\t\tTOP3")
             print("\t\t\tSuccess {} ; Success Rate {}".format(docking_power_res_dict['top3_correct'],
-                                                            docking_power_res_dict['top3_success']))
-
+                                                              docking_power_res_dict['top3_success']))

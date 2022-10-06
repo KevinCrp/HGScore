@@ -9,7 +9,7 @@ import torch_geometric as pyg
 import torchmetrics.functional as tmf
 
 import plotters
-from casf.ranking_power import ranking_power_pt
+from casf.ranking_power import ranking_power
 from casf.scoring_power import scoring_power
 from networks.bipartite_afp import BG_LPS
 
@@ -254,8 +254,8 @@ class Model(pl.LightningModule):
         """
         pearson, sd, nb_favorable, mae, rmse = scoring_power(
             preds=all_preds, targets=all_targets)
-        spearman, kendall, pi = ranking_power_pt(
-            all_preds, all_targets, self.ranking_nb_in_clusters, all_clusters)
+        spearman, kendall, pi = ranking_power(
+            all_preds, all_targets, all_clusters, self.ranking_nb_in_clusters)
         plotters.plot_linear_reg(all_preds, all_targets,
                                  pearson, sd,
                                  osp.join(self.plot_path,
