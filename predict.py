@@ -11,6 +11,16 @@ from data import clean_pdb, create_pyg_graph
 def make_bipartite_graph(protein_path: str,
                          ligand_path: str,
                          atomic_distance_cutoff: float) -> pyg.data.HeteroData:
+    """Build a Bipartite Graph from a Protein and a Ligand files
+
+    Args:
+        protein_path (str): Path to the protien PDB
+        ligand_path (str): Path to the ligand MOL2
+        atomic_distance_cutoff (float): The cutoff to consider a link between a protein-ligand atom pair
+
+    Returns:
+        pyg.data.HeteroData: The bipartite graph
+    """
     protein_dir, protein_path = osp.split(protein_path)
     clean_protein_path = 'clean_' + protein_path
     clean_protein_path = osp.join(protein_dir, clean_protein_path)

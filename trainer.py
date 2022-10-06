@@ -13,6 +13,11 @@ import model as md
 
 
 def train(atomic_distance_cutoff: float):
+    """Train the model
+
+    Args:
+        atomic_distance_cutoff (float): The cutoff to consider a link between a protein-ligand atom pair
+    """    
     gpus = torch.cuda.device_count()
     use_gpu = gpus > 0
     strategy = 'ddp' if use_gpu else None
