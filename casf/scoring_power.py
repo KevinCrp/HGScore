@@ -1,6 +1,6 @@
 from math import nan
 import math
-from typing import  Tuple
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -10,38 +10,33 @@ from sklearn import linear_model
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 
-def scoring_power(**kwargs) -> Tuple[float, float, float, float, float]:
-    """Compute the CASF scoring power, from two tensor (preds and targets)
-        or from a list including both preds and targets
-
-    Returns:
-        Tuple[float, float, float, float, float]: Pearson Correlation coef, standard deviation, number of favorable items,
-                                    Mean Absolute error, root mean squared error
-    """    
-    preds = kwargs.get('preds', None)
-    targets = kwargs.get('targets', None)
-    preds_target_lists = kwargs.get('preds_target_list', None)
-
-    if preds is not None and targets is not None:
-        t = torch.cat((preds.view(-1, 1), targets.view(-1, 1)), -1).cpu().numpy()
-        df = pd.DataFrame(t, columns=['score', 'logKa'])
-    elif preds_target_lists is not None:
-        df = pd.DataFrame(preds_target_lists, columns=['score', 'logKa'])
-    else:
-        return nan
-    return scoring_power_compute(df) 
-
-
-def scoring_power_compute(df: pd.DataFrame) -> Tuple[float, float, float, float, float]:
-    """Compute the CASF scoring power from a pandas Dataframe, adapted from the scoring_power 2016 code
+def tensors_to_df(preds: torch.Tensor, targets: torch.Tensor) -> pd.DataFrame:
+    """Save preds and targets tensor into a Dataframe to compute scoring power
 
     Args:
-        df (pd.DataFrame): A pandas Dataframe with columns logKa (real values) and score (predictions)
+        preds (torch.Tensor): The predicted tensor
+        targets (torch.Tensor): The real tensor
+
+    Returns:
+        pd.DataFrame: A Dataframe containing ['score', 'logKa'] columns (logKa == targets)
+    """
+    t = torch.cat((preds.view(-1, 1), targets.view(-1, 1)), -1).cpu().numpy()
+    df = pd.DataFrame(t, columns=['score', 'logKa'])
+    return df
+
+
+def scoring_power(preds: torch.Tensor, targets: torch.Tensor) -> Tuple[float, float, float, float, float]:
+    """Compute the CASF scoring power, adapted from the scoring_power 2016 code
+
+    Args:
+        preds (torch.Tensor): The predicted tensor
+        targets (torch.Tensor): The real tensor
 
     Returns:
         Tuple[float, float, float, float, float]: Pearson Correlation coef, standard deviation, number of favorable items,
                                     Mean Absolute error, root mean squared error
     """
+    df = tensors_to_df(preds, targets)
     # Predicted scores are round because in code proposed by CASF authors, the metrics are computed on rounded scores
     df.score = df.score.round(2)
     # From CASF Code
