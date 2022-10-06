@@ -185,9 +185,12 @@ class Model(pl.LightningModule):
                                     for x in outputs])
         r2 = tmf.r2_score(all_preds, all_targets)
         pearson = tmf.pearson_corrcoef(all_preds, all_targets)
-        self.log("ep_end_{}/loss".format(stage), avg_loss, sync_dist=True)
-        self.log("ep_end_{}/r2_score".format(stage), r2, sync_dist=True)
-        self.log("ep_end_{}/pearson".format(stage), pearson, sync_dist=True)
+        metrics_dict = {
+            "ep_end_{}/loss".format(stage): avg_loss,
+            "ep_end_{}/r2_score".format(stage): r2,
+            "ep_end_{}/pearson".format(stage): pearson
+        }
+        self.log_dict(metrics_dict, sync_dist=True)
 
     def set_casf_test(self, version: Union[int, str]):
         """Reset all names and values used in model testing according to the given version
@@ -253,17 +256,19 @@ class Model(pl.LightningModule):
         pearson = float('nan') if pearson is None else pearson
         sd = float('nan') if sd is None else sd
 
-        self.log(self.casf_name + "/loss", avg_loss, sync_dist=True)
-        self.log(self.casf_name + "/r2_score", r2, sync_dist=True)
-        self.log(self.casf_name + "/pearson", pearson, sync_dist=True)
-        self.log(self.casf_name + "/sd", sd, sync_dist=True)
-        self.log(self.casf_name + "/mae", mae, sync_dist=True)
-        self.log(self.casf_name + "/rmse", rmse, sync_dist=True)
-        self.log(self.casf_name + "/spearman", spearman, sync_dist=True)
-        self.log(self.casf_name + "/kendall", kendall, sync_dist=True)
-        self.log(self.casf_name + "/pi", pi, sync_dist=True)
-        self.log(self.casf_name + "/nb_favorable",
-                 torch.tensor(nb_favorable, dtype=torch.float32), sync_dist=True)
+        metrics_dict={
+            self.casf_name + "/loss": avg_loss,
+            self.casf_name + "/r2_score": r2,
+            self.casf_name + "/pearson": pearson,
+            self.casf_name + "/sd": sd,
+            self.casf_name + "/mae": mae,
+            self.casf_name + "/rmse": rmse,
+            self.casf_name + "/spearman": spearman,
+            self.casf_name + "/kendall": kendall,
+            self.casf_name + "/pi": pi,
+            self.casf_name + "/nb_favorable":torch.tensor(nb_favorable, dtype=torch.float32)
+        }
+        self.log_dict(metrics_dict, sync_dist=True)
 
     def validation_epoch_end(self, outputs: List):
         self.common_epoch_end(outputs, 'val')
