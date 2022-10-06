@@ -4,7 +4,7 @@ import multiprocessing as mp
 import os
 import os.path as osp
 import re
-from typing import Union
+from typing import Dict, List, Union
 
 import pandas as pd
 import pytorch_lightning as pl
@@ -338,7 +338,15 @@ class PDBBindDataModule(pl.LightningDataModule):
                                      persistent_workers=self.persistent_workers)
 
 
-def read_decoy_rmsd(path: str):
+def read_decoy_rmsd(path: str) -> pd.DataFrame:
+    """Load the docking power decoys' rmsd into a Dataframe
+
+    Args:
+        path (str): Path to the csv containing the docking power decoys' rmsd
+
+    Returns:
+        pd.DataFrame: The Dataframe
+    """    
     lst_for_df = []
     with open(path, 'r') as f:
         for line in f.readlines():
@@ -351,13 +359,30 @@ def read_decoy_rmsd(path: str):
     return df
 
 
-def clean_backbone_str(lines):
+def clean_backbone_str(lines: List[str]) -> List[str]:
+    """Clear the MOL2 ATOM lines by removing "BACKBONE" at the end of the lines
+
+    Args:
+        lines (List[str]): The MOL2 ATOM lines
+
+    Returns:
+        List[str]: The cleaned lines
+    """    
     for i in range(len(lines)):
         lines[i] = lines[i].replace("BACKBONE\n", '\n')
     return lines
 
 
-def split_multi_mol2(mol2_path: str, rmsd_path: str):
+def split_multi_mol2(mol2_path: str, rmsd_path: str) -> Dict:
+    """For a given docking power complex, split into a Dict all decoys
+
+    Args:
+        mol2_path (str): Path to the decoys mol2 file
+        rmsd_path (str): Path to the decoys rmsd file
+
+    Returns:
+        Dict: A dictionnary
+    """    
     mol2_dict = {}
     pdmol = PandasMol2()
     df_rmsd = read_decoy_rmsd(rmsd_path)
