@@ -1,3 +1,4 @@
+import logging
 import os.path as osp
 import sys
 from typing import Dict, List, Tuple, Union
@@ -57,9 +58,8 @@ class Model(pl.LightningModule):
         if isinstance(hidden_channels_la, int):
             hidden_channels_la = num_layers * [hidden_channels_la]
         if len(hidden_channels_pa) != num_layers:
-            print(
-                "Error: the num_layer doesn't match the given layer sizes in"
-                "config.ini")
+            logging.error("The num_layer doesn't match the given layer sizes in"
+                          " config.ini")
             sys.exit()
         self.plot_path = plot_path
         self.model = BG_LPS(list_hidden_channels_pa=hidden_channels_pa,
@@ -69,14 +69,12 @@ class Model(pl.LightningModule):
                             mlp_channels=mlp_channels,
                             num_timesteps=num_timesteps,
                             dropout=dropout,
-                            heads=heads,
-                            verbose=False)
+                            heads=heads)
 
         self.loss_funct = F.mse_loss
         self.lr = lr
         self.weight_decay = weight_decay
         self.prefix = 'pocket_'
-        # print(self.model)
 
     def get_nb_parameters(self, only_trainable: bool = False):
         """Get the number of model's parameters

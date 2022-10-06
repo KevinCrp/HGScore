@@ -97,8 +97,7 @@ class HeteroAFP_Atomic(torch.nn.Module):
                  num_layers: int,
                  dropout: float,
                  heads: int,
-                 hetero_aggr: str = 'sum',
-                 verbose: bool = False):
+                 hetero_aggr: str = 'sum'):
         """Construct the atomic embedding part
 
         Args:
@@ -108,19 +107,12 @@ class HeteroAFP_Atomic(torch.nn.Module):
             dropout (float): Dropout rate
             heads (int): Number of heads
             hetero_aggr (str, optional): How the hetero aggregation is did. Defaults to 'sum'.
-            verbose (bool, optional): Verbose. Defaults to False.
         """
         super().__init__()
         first_layer_dict = get_het_conv_first_layer(
             list_hidden_channels_pa[0], list_hidden_channels_la[0], dropout)
         list_other_layer_dict = get_het_conv_layer(
             list_hidden_channels_pa, list_hidden_channels_la, heads, dropout)
-        if verbose:
-            print(first_layer_dict)
-            print('--\n')
-            for dico in list_other_layer_dict:
-                print(dico)
-                print('--\n')
         self.conv_list = torch.nn.ModuleList(
             [HeteroConv(first_layer_dict, aggr=hetero_aggr)])
         self.num_layers = num_layers
@@ -224,8 +216,7 @@ class BG_LPS(torch.nn.Module):
                  mlp_channels: List[int],
                  num_timesteps: int,
                  dropout: float,
-                 heads: int,
-                 verbose: bool = False):
+                 heads: int):
         """Construct the model
 
         Args:
@@ -237,7 +228,6 @@ class BG_LPS(torch.nn.Module):
             num_timesteps (int): Number of timestep for molecular embedding
             dropout (float): Dropout rate
             heads (int): Number of heads
-            verbose (bool, optional): Verbose. Defaults to False.
         """
         super().__init__()
         self.gcn_atm = HeteroAFP_Atomic(
@@ -246,8 +236,7 @@ class BG_LPS(torch.nn.Module):
             num_layers=num_layers,
             dropout=dropout,
             heads=heads,
-            hetero_aggr=hetero_aggr,
-            verbose=verbose)
+            hetero_aggr=hetero_aggr)
         self.gcn_mol = AFP_Hetero_Molecular(hidden_channels_pa=list_hidden_channels_pa[-1],
                                             hidden_channels_la=list_hidden_channels_la[-1],
                                             out_channels_pa=list_hidden_channels_pa[-1],
