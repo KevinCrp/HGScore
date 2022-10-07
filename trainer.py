@@ -64,7 +64,7 @@ def train(atomic_distance_cutoff: float,
         mlp_channels=model_parameters['mlp_channels'],
         lr=model_parameters['lr'],
         weight_decay=model_parameters['weight_decay'],
-        num_timesteps=model_parameters['num_timesteps'],
+        molecular_embedding_size=model_parameters['molecular_embedding_size'],
         plot_path=version_path,
         str_for_hparams="InterMol length: {}A".format(atomic_distance_cutoff))
 

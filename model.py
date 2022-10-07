@@ -30,7 +30,7 @@ class Model(pl.LightningModule):
                  lr: float,
                  weight_decay: float,
                  plot_path: str,
-                 num_timesteps: int,
+                 molecular_embedding_size: int,
                  str_for_hparams: str = ''):
         """_summary_
 
@@ -47,7 +47,7 @@ class Model(pl.LightningModule):
             lr (float): The learning rate
             weight_decay (float): The weight decay
             plot_path (str): Where save plots
-            num_timesteps (int): Number of timestep for molecular embedding
+            molecular_embedding_size (int): Number of timestep for molecular embedding
             str_for_hparams (str, optional): Allowing to save supplementary
                 information for tensorboard. Defaults to ''.
         """
@@ -63,13 +63,13 @@ class Model(pl.LightningModule):
             sys.exit()
         self.plot_path = plot_path
         self.model = BGCN_4_PLS(list_hidden_channels_pa=hidden_channels_pa,
-                            list_hidden_channels_la=hidden_channels_la,
-                            num_layers=num_layers,
-                            hetero_aggr=hetero_aggr,
-                            mlp_channels=mlp_channels,
-                            num_timesteps=num_timesteps,
-                            dropout=dropout,
-                            heads=heads)
+                                list_hidden_channels_la=hidden_channels_la,
+                                num_layers=num_layers,
+                                hetero_aggr=hetero_aggr,
+                                mlp_channels=mlp_channels,
+                                molecular_embedding_size=molecular_embedding_size,
+                                dropout=dropout,
+                                heads=heads)
 
         self.loss_funct = F.mse_loss
         self.lr = lr
@@ -256,7 +256,7 @@ class Model(pl.LightningModule):
         pearson = float('nan') if pearson is None else pearson
         sd = float('nan') if sd is None else sd
 
-        metrics_dict={
+        metrics_dict = {
             self.casf_name + "/loss": avg_loss,
             self.casf_name + "/r2_score": r2,
             self.casf_name + "/pearson": pearson,
@@ -266,7 +266,7 @@ class Model(pl.LightningModule):
             self.casf_name + "/spearman": spearman,
             self.casf_name + "/kendall": kendall,
             self.casf_name + "/pi": pi,
-            self.casf_name + "/nb_favorable":torch.tensor(nb_favorable, dtype=torch.float32)
+            self.casf_name + "/nb_favorable": torch.tensor(nb_favorable, dtype=torch.float32)
         }
         self.log_dict(metrics_dict, sync_dist=True)
 

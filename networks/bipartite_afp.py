@@ -152,7 +152,7 @@ class AFP_Hetero_Molecular(torch.nn.Module):
                  hidden_channels_la: int,
                  out_channels_pa: int,
                  out_channels_la: int,
-                 num_timesteps: int,
+                 molecular_embedding_size: int,
                  dropout: float,
                  heads: int):
         """Construct the molecular embedding part
@@ -162,14 +162,14 @@ class AFP_Hetero_Molecular(torch.nn.Module):
             hidden_channels_la (int): The size of channels for the ligand part
             out_channels_pa (int): The size of output channels for the protein part
             out_channels_la (int): The size of output channels for the ligand part
-            num_timesteps (int): Number of timestep for molecular embedding
+            molecular_embedding_size (int): Number of timestep for molecular embedding
             dropout (float): Dropout rate
             heads (int): Number of heads
         """
         super().__init__()
         self.gcn_pa = self.gcn_la = None
         self.lin_pa = self.lin_la = None
-        self.num_timesteps = num_timesteps
+        self.molecular_embedding_size = molecular_embedding_size
 
         self.gcn_pa = AFP_GATGRUConvMol(
             hidden_channels_pa, hidden_channels_pa, hidden_channels_pa,
@@ -192,7 +192,7 @@ class AFP_Hetero_Molecular(torch.nn.Module):
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: The molecular embedding of (protein, ligand)
         """
-        for _ in range(self.num_timesteps):
+        for _ in range(self.molecular_embedding_size):
             x_dict['pa_embedding'] = self.gcn_pa(x_dict['protein_atoms'],
                                                  x_dict['pa_embedding'],
                                                  edge_index_dict['pa_embedding'])
@@ -214,7 +214,7 @@ class BGCN_4_PLS(torch.nn.Module):
                  num_layers: int,
                  hetero_aggr: str,
                  mlp_channels: List[int],
-                 num_timesteps: int,
+                 molecular_embedding_size: int,
                  dropout: float,
                  heads: int):
         """Construct the model
@@ -225,7 +225,7 @@ class BGCN_4_PLS(torch.nn.Module):
             num_layers (int): The number of layers
             hetero_aggr (str): How the hetero aggregation is did
             mlp_channels (List[int]): List of final MLP channels size
-            num_timesteps (int): Number of timestep for molecular embedding
+            molecular_embedding_size (int): Number of timestep for molecular embedding
             dropout (float): Dropout rate
             heads (int): Number of heads
         """
@@ -241,7 +241,7 @@ class BGCN_4_PLS(torch.nn.Module):
                                             hidden_channels_la=list_hidden_channels_la[-1],
                                             out_channels_pa=list_hidden_channels_pa[-1],
                                             out_channels_la=list_hidden_channels_la[-1],
-                                            num_timesteps=num_timesteps,
+                                            molecular_embedding_size=molecular_embedding_size,
                                             dropout=dropout,
                                             heads=heads)
 
