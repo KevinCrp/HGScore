@@ -45,8 +45,7 @@ def train(atomic_distance_cutoff: float):
                                         atomic_distance_cutoff=atomic_distance_cutoff,
                                         batch_size=cfg.batch_size,
                                         num_workers=mp.cpu_count(),
-                                        only_pocket=True,
-                                        sample_percent=100.0)
+                                        only_pocket=True)
 
     model = md.Model(
         hidden_channels_pa=cfg.hidden_channels_pa,

@@ -264,8 +264,6 @@ class PDBBindDataModule(pl.LightningDataModule):
     num_workers: int = field(default=1)
     # Use only the binding pocket or not. Defaults to False.
     only_pocket: bool = field(default=False)
-    # Use it to train/validate on a subset of the dataset
-    sample_percent: float = field(default=100.0)
     # Use persistent workers in dataloader
     persistent_workers: bool = field(default=True)
 
@@ -282,15 +280,7 @@ class PDBBindDataModule(pl.LightningDataModule):
         self.dt_val = PDBBindDataset(
             root=self.root, atomic_distance_cutoff=self.atomic_distance_cutoff,
             stage='val', only_pocket=self.only_pocket)
-        if self.sample_percent != 100.0:
-            nb_item_subset_train = int(
-                len(self.dt_train) * self.sample_percent / 100)
-            self.dt_train = self.dt_train.index_select(
-                range(0, nb_item_subset_train))
-            nb_item_subset_val = int(
-                len(self.dt_val) * self.sample_percent / 100)
-            self.dt_val = self.dt_val.index_select(
-                range(0, nb_item_subset_val))
+        
         self.dt_casf_13 = CASFDataset(root=cfg.data_path, year='13',
                                       atomic_distance_cutoff=self.atomic_distance_cutoff,
                                       only_pocket=cfg.data_use_only_pocket)
