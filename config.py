@@ -33,5 +33,4 @@ mlp_channels = [input_size, input_size*2, input_size*3, 1]
 learning_rate = 1e-4
 weight_decay = 1e-4
 
-nb_epochs = 150
 batch_size = 64

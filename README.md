@@ -16,18 +16,20 @@ usage: data.py [-h] [-cutoff CUTOFF] [-docking_power]
 optional arguments:
   -h, --help            show this help message and exit
   -cutoff CUTOFF, -c CUTOFF
-                        The cutoff to consider a link between a protein-ligand atom pair
+                        The cutoff to consider a link between a protein-ligand atom pair (defaults to 4.0)
   -docking_power, -dp   Flag allowing to create the docking power dataset
 ````
 6. Change model hyperparameters in `config.py`
 7. Launch the training 
 ````bash
-usage: trainer.py [-h] [-cutoff CUTOFF]
+usage: trainer.py [-h] [-nb_epochs NB_EPOCHS] [-cutoff CUTOFF]
 
 optional arguments:
   -h, --help            show this help message and exit
+  -nb_epochs NB_EPOCHS, -ep NB_EPOCHS
+                        The maximum number of epochs (defaults to 100).
   -cutoff CUTOFF, -c CUTOFF
-                        The cutoff to consider a link between a protein-ligand atom pair
+                        The cutoff to consider a link between a protein-ligand atom pair (defaults to 4.0).
 ````
 8. Results will be saved in *experiments/BG_PLS/version_X*
 9. Access them with 
@@ -46,7 +48,7 @@ optional arguments:
   -casf_13              Test on CASF Core set v2013
   -casf_16              Test on CASF Core set v2016
   -cutoff CUTOFF, -c CUTOFF
-                        The cutoff to consider a link between a protein-ligand atom pair
+                        The cutoff to consider a link between a protein-ligand atom pair (defaults to 4.0)
   -docking_power, -dp   Flag allowing to compute the docking power
   -docking_power_cutoff DOCKING_POWER_CUTOFF, -dpc DOCKING_POWER_CUTOFF
                         The RMSD cutoff (in angstrom) to define near-native docking pose for Docking Power (defaults to 2.0)
@@ -67,5 +69,5 @@ optional arguments:
   -ligand_path LIGAND_PATH, -l LIGAND_PATH
                         Path to the ligand MOL2 file
   -cutoff CUTOFF, -c CUTOFF
-                        The cutoff to consider a link between a protein-ligand atom pair
+                        The cutoff to consider a link between a protein-ligand atom pair (defaults to 4.0)
 ````

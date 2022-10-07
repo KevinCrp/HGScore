@@ -12,11 +12,13 @@ import data
 import model as md
 
 
-def train(atomic_distance_cutoff: float):
+def train(atomic_distance_cutoff: float,
+          nb_epochs: int):
     """Train the model
 
     Args:
         atomic_distance_cutoff (float): The cutoff to consider a link between a protein-ligand atom pair
+        nb_epochs (int): The maximum number of epochs 
     """
     gpus = torch.cuda.device_count()
     use_gpu = gpus > 0
@@ -71,7 +73,7 @@ def train(atomic_distance_cutoff: float):
                          devices=devices,
                          strategy=strategy,
                          callbacks=callbacks,
-                         max_epochs=cfg.nb_epochs,
+                         max_epochs=nb_epochs,
                          logger=logger,
                          log_every_n_steps=2,
                          num_sanity_val_steps=0)
@@ -125,10 +127,16 @@ def test_best_model(best_model_path: str,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('-nb_epochs', '-ep',
+                        type=int,
+                        help='The maximum number of epochs ',
+                        default=100)
     parser.add_argument('-cutoff', '-c',
                         type=float,
                         help='The cutoff to consider a link between a protein-ligand atom pair',
                         default=4.0)
     args = parser.parse_args()
     atomic_distance_cutoff = args.cutoff
-    train(atomic_distance_cutoff)
+    nb_epochs = args.nb_epochs
+    train(atomic_distance_cutoff=atomic_distance_cutoff,
+          nb_epochs=nb_epochs)
