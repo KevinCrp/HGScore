@@ -204,8 +204,8 @@ class AFP_Hetero_Molecular(torch.nn.Module):
         return y_pa, y_la
 
 
-class BG_LPS(torch.nn.Module):
-    """The Bipartite Graph for Ligand-Protein Scoring network
+class BGCN_4_PLS(torch.nn.Module):
+    """The Bipartite Graph Convolutional neural Network for Protein-Ligand Scoring network
     """
 
     def __init__(self,

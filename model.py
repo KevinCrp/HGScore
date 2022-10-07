@@ -12,7 +12,7 @@ import torchmetrics.functional as tmf
 import plotters
 from casf.ranking_power import ranking_power
 from casf.scoring_power import scoring_power
-from networks.bipartite_afp import BG_LPS
+from networks.bipartite_afp import BGCN_4_PLS
 
 
 class Model(pl.LightningModule):
@@ -62,7 +62,7 @@ class Model(pl.LightningModule):
                           " config.ini")
             sys.exit()
         self.plot_path = plot_path
-        self.model = BG_LPS(list_hidden_channels_pa=hidden_channels_pa,
+        self.model = BGCN_4_PLS(list_hidden_channels_pa=hidden_channels_pa,
                             list_hidden_channels_la=hidden_channels_la,
                             num_layers=num_layers,
                             hetero_aggr=hetero_aggr,
