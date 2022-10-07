@@ -6,6 +6,7 @@ from typing import Union
 import pytorch_lightning as pl
 import torch
 import yaml
+from pytorch_lightning.plugins import DDPPlugin
 from pytorch_lightning.utilities import rank_zero_only
 
 import config as cfg
@@ -24,7 +25,7 @@ def train(atomic_distance_cutoff: float,
     gpus = torch.cuda.device_count()
     use_gpu = gpus > 0
     accelerator = 'gpu' if use_gpu else None
-    strategy = 'ddp' if use_gpu else None
+    strategy = DDPPlugin(find_unused_parameters=False) if use_gpu else None
     devices = gpus if gpus > 0 else None
     exp_model_name = 'BG_PLS'
 
