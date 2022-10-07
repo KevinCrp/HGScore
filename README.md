@@ -19,7 +19,7 @@ optional arguments:
                         The cutoff to consider a link between a protein-ligand atom pair (defaults to 4.0)
   -docking_power, -dp   Flag allowing to create the docking power dataset
 ````
-6. Change model hyperparameters in `config.py`
+6. Change model hyperparameters in `model_parameters.yaml`
 7. Launch the training 
 ````bash
 usage: trainer.py [-h] [-nb_epochs NB_EPOCHS] [-cutoff CUTOFF]

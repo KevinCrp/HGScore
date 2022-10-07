@@ -5,6 +5,7 @@ from typing import Union
 
 import pytorch_lightning as pl
 import torch
+import yaml
 from pytorch_lightning.utilities import rank_zero_only
 
 import config as cfg
@@ -43,24 +44,27 @@ def train(atomic_distance_cutoff: float,
     callbacks = [pl.callbacks.LearningRateMonitor(
     ), checkpoint_callback, early_stopping_callback]
 
+    with open(cfg.model_parameters_path, 'r') as f_yaml:
+        model_parameters = yaml.safe_load(f_yaml)
+
     datamodule = data.PDBBindDataModule(root=cfg.data_path,
                                         atomic_distance_cutoff=atomic_distance_cutoff,
-                                        batch_size=cfg.batch_size,
+                                        batch_size=model_parameters['batch_size'],
                                         num_workers=mp.cpu_count(),
                                         only_pocket=True)
 
     model = md.Model(
-        hidden_channels_pa=cfg.hidden_channels_pa,
-        hidden_channels_la=cfg.hidden_channels_pa,
-        num_layers=cfg.num_layers,
-        dropout=cfg.p_dropout,
-        heads=cfg.heads,
-        hetero_aggr=cfg.hetero_aggr,
-        mlp_channels=cfg.mlp_channels,
-        lr=cfg.learning_rate,
-        weight_decay=cfg.weight_decay,
+        hidden_channels_pa=model_parameters['hidden_channels_pa'],
+        hidden_channels_la=model_parameters['hidden_channels_la'],
+        num_layers=model_parameters['num_layers'],
+        dropout=model_parameters['dropout'],
+        heads=model_parameters['heads'],
+        hetero_aggr=model_parameters['hetero_aggr'],
+        mlp_channels=model_parameters['mlp_channels'],
+        lr=model_parameters['lr'],
+        weight_decay=model_parameters['weight_decay'],
+        num_timesteps=model_parameters['num_timesteps'],
         plot_path=version_path,
-        num_timesteps=cfg.num_timesteps,
         str_for_hparams="InterMol length: {}A".format(atomic_distance_cutoff))
 
     nb_param_trainable = model.get_nb_parameters(only_trainable=True)
