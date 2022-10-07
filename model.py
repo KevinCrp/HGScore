@@ -279,12 +279,7 @@ class Model(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr,
                                      weight_decay=self.weight_decay)
-        # lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-        #                                               step_size=50,
-        #                                                gamma=0.7)
-        return {"optimizer": optimizer}  # ,
-        # "lr_scheduler": lr_scheduler,
-        # "monitor": "ep_end/val_loss"}
+        return {"optimizer": optimizer}
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         return self(batch)
