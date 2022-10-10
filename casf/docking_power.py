@@ -78,15 +78,15 @@ def docking_power_df(docking_power_df: pd.DataFrame,
     top2_success = float(Top2['success'].sum()) / float(Top2.shape[0]) * 100
     top3_success = float(Top3['success'].sum()) / float(Top3.shape[0]) * 100
 
-    sp2 = round(SP2['spearman'].mean(), 3)
-    sp3 = round(SP3['spearman'].mean(), 3)
-    sp4 = round(SP4['spearman'].mean(), 3)
-    sp5 = round(SP5['spearman'].mean(), 3)
-    sp6 = round(SP6['spearman'].mean(), 3)
-    sp7 = round(SP7['spearman'].mean(), 3)
-    sp8 = round(SP8['spearman'].mean(), 3)
-    sp9 = round(SP9['spearman'].mean(), 3)
-    sp10 = round(SP10['spearman'].mean(), 3)
+    sp2 = round(SP2['spearman'].mean(), 2)
+    sp3 = round(SP3['spearman'].mean(), 2)
+    sp4 = round(SP4['spearman'].mean(), 2)
+    sp5 = round(SP5['spearman'].mean(), 2)
+    sp6 = round(SP6['spearman'].mean(), 2)
+    sp7 = round(SP7['spearman'].mean(), 2)
+    sp8 = round(SP8['spearman'].mean(), 2)
+    sp9 = round(SP9['spearman'].mean(), 2)
+    sp10 = round(SP10['spearman'].mean(), 2)
 
     top1_correct = Top1['success'].sum()
     top2_correct = Top2['success'].sum()
