@@ -33,11 +33,14 @@ def plot_linear_reg(p: torch.Tensor, t: torch.Tensor, pearson_r: float,
     plt.scatter(targets, preds, c='blue', label='Network outputs')
     # plt.scatter(targets, targets, c='green', label='Ground Truth')
     plt.plot(targets, gt_pred_rl, c='orange',
-             label="Ground Truth Linear Regression")
+             label="Ground Truth Linear Regression, y = {}x + {}".format(round(gt_regr.coef_[0][0], 2),
+                                                                         round(gt_regr.intercept_[0], 2)))
     # pearson_r = pearson_r if pearson_r is not None else float('nan')
     # sd = sd if sd is not None else float('nan')
     plt.plot(targets.numpy(), regr2_pred_rl, c='red',
-             label="Linear Regression")  # Rp={:.2f} ; SD={:.2f}".format(pearson_r, sd))
+             label="Linear Regression, y = {}x + {}".format(round(regr2.coef_[0][0], 2),
+                                                            round(regr2.intercept_[0], 2)))
+    # Rp={:.2f} ; SD={:.2f}".format(pearson_r, sd))
 
     plt.xlabel('Targeted Scores')
     plt.ylabel('Predicted Scores')
