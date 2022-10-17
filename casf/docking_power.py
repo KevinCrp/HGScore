@@ -16,7 +16,7 @@ def docking_power_df(docking_power_df: pd.DataFrame,
         dict: A dictionnary containing SP[2-10] and TOP[1-3]
     """
     # Adapted from CASF 2016/Docking_power.py
-    
+
     nb_top = 50 + 1
     top_df = []
     tops = []
@@ -83,7 +83,7 @@ def docking_power_df(docking_power_df: pd.DataFrame,
         top_succes = float(top['success'].sum()) / float(top.shape[0]) * 100
         tops += [top_succes]
         tops_label += [j]
-  
+
     sp2 = round(SP2['spearman'].mean(), 2)
     sp3 = round(SP3['spearman'].mean(), 2)
     sp4 = round(SP4['spearman'].mean(), 2)
@@ -116,8 +116,12 @@ def docking_power_df(docking_power_df: pd.DataFrame,
 
     fig, ax = plt.subplots()
     ax.plot(tops_label, tops, color='blue', alpha=1.00)
-    ax.set_xlabel('Top i')
+    ax.set_xlabel('Top')
     ax.set_ylabel('Success rate (%)')
+    ax.set_xlim((1, nb_top))
+    ax.set_ylim((0, 110))
+    ax.set_xticks([1, 10, 20, 30, 40, 50])
+    ax.set_yticks([0, 20, 40, 60, 80, 100])
     ax.fill_between(tops_label, tops, 0, color='blue', alpha=.1)
     plt.savefig('docking_power_curve.png')
 
