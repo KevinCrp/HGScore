@@ -6,6 +6,8 @@ import pandas as pd
 import torch
 from sklearn import linear_model
 
+import seaborn as sns
+
 
 def plot_linear_reg(p: torch.Tensor, t: torch.Tensor, pearson_r: float,
                     sd: float, filepath: str):
@@ -20,33 +22,23 @@ def plot_linear_reg(p: torch.Tensor, t: torch.Tensor, pearson_r: float,
     """
     preds = p.cpu()
     targets = t.cpu()
-    gt_regr = linear_model.LinearRegression()
-    gt_regr.fit(targets.numpy().reshape(-1, 1),
-                targets.numpy().reshape(-1, 1))
-    gt_pred_rl = gt_regr.predict(targets.numpy().reshape(-1, 1))
 
     regr2 = linear_model.LinearRegression()
     regr2.fit(targets.numpy().reshape(-1, 1),
               preds.numpy().reshape(-1, 1))
-    regr2_pred_rl = regr2.predict(targets.numpy().reshape(-1, 1))
 
-    plt.scatter(targets, preds, c='blue', label='Network outputs')
-    # plt.scatter(targets, targets, c='green', label='Ground Truth')
-    plt.plot(targets, gt_pred_rl, c='orange',
-             label="Ground Truth Linear Regression") #, y = {}x + {}".format(round(gt_regr.coef_[0][0], 2),
-                                                     #                    round(gt_regr.intercept_[0], 2)))
-    # pearson_r = pearson_r if pearson_r is not None else float('nan')
-    # sd = sd if sd is not None else float('nan')
-    plt.plot(targets.numpy(), regr2_pred_rl, c='red',
-             label="Linear Regression, y = {}x + {}".format(round(regr2.coef_[0][0], 2),
-                                                            round(regr2.intercept_[0], 2)))
-    # Rp={:.2f} ; SD={:.2f}".format(pearson_r, sd))
-
-    plt.xlabel('Targeted Scores')
-    plt.ylabel('Predicted Scores')
-    plt.legend()
-    plt.savefig(filepath)
-    plt.close()
+    lineplot = sns.lineplot(x=targets.numpy(), y=targets.numpy(),
+                            color="orange",
+                            label="Ground Truth Linear Regression")
+    regplot = sns.regplot(x=targets.numpy(), y=preds.numpy(), ci=95,
+                          label="Network output, linear Regression, y = {}x + {}".format(round(regr2.coef_[0][0], 2),
+                                                                                         round(regr2.intercept_[0], 2)))
+    regplot.set(xlabel='Targeted Scores',
+                ylabel='Predicted Scores')
+    regplot.legend()
+    fig_sns = regplot.get_figure()
+    fig_sns.savefig(filepath, dpi=400)
+    plt.close(fig_sns)
 
 
 def save_predictions(pdb_id: List, preds: torch.Tensor, filepath: str):
