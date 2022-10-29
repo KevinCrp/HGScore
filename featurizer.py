@@ -360,10 +360,11 @@ def featurize(protein_path: str, ligand_path: str, cutoff: float,
     atom_df = ppdb.df['ATOM'][ppdb.df['ATOM']['element_symbol'] != 'H']
     list_atom_name = atom_df['atom_name'].tolist()
 
-    (protein_atom_properties_list,
-     protein_edge_index, protein_edge_attr) = get_molecule_properties(protein)
-    (ligand_atom_properties_list,
-     ligand_edge_index, ligand_edge_attr) = get_molecule_properties(ligand)
+    with stderr_redirected(to='obabel.err'):
+        (protein_atom_properties_list,
+         protein_edge_index, protein_edge_attr) = get_molecule_properties(protein)
+        (ligand_atom_properties_list,
+         ligand_edge_index, ligand_edge_attr) = get_molecule_properties(ligand)
 
     (p_atm_to_l_edge_index, l_to_p_atm_edge_index, p_atm_to_l_edge_attr,
      l_to_p_atm_edge_attr) = get_bonds_protein_ligand(protein, ligand,
@@ -383,3 +384,7 @@ def featurize(protein_path: str, ligand_path: str, cutoff: float,
             l_to_p_atm_edge_attr,  # ligand_atoms ->  protein_atoms
             p_atm_to_l_edge_attr  # protein_atoms -> ligand_atoms
             )
+
+
+featurize("data/raw/5ujo/5ujo_pocket.pdb",
+          "data/raw/5ujo/5ujo_ligand.mol2", 4.0)
