@@ -1,5 +1,4 @@
-import os
-import sys
+import os.path as osp
 from typing import List, Tuple
 
 import biopandas.pdb as bpdb
@@ -9,17 +8,7 @@ from oddt.spatial import distance
 from oddt.toolkits.ob import Molecule, readfile
 from openbabel import openbabel
 
-
-def redirect_c_std_err():
-    """Redirect the c std error to the file obabel.err
-    """
-    # https://stackoverflow.com/questions/8804893/redirect-stdout-from-python-for-c-calls
-    sys.stderr.flush()
-    newstderr = os.dup(2)
-    err_out = os.open('obabel.err', os.O_CREAT | os.O_WRONLY | os.O_APPEND)
-    os.dup2(err_out, 2)
-    os.close(err_out)
-    sys.stderr = os.fdopen(newstderr, 'w')
+from redirect import stderr_redirected
 
 
 def open_pdb(filepath: str, hydrogens_removal: bool = True) -> Molecule:
@@ -32,11 +21,11 @@ def open_pdb(filepath: str, hydrogens_removal: bool = True) -> Molecule:
     Returns:
         Molecule: The loaded molecule
     """
-    redirect_c_std_err()
-    mol = next(readfile('pdb', filepath))
-    if hydrogens_removal:
-        mol.removeh()
-    return mol
+    with stderr_redirected(to='obabel.err'):
+        mol = next(readfile('pdb', filepath))
+        if hydrogens_removal:
+            mol.removeh()
+        return mol
 
 
 def open_mol2(filepath: str, hydrogens_removal: bool = True) -> Molecule:
@@ -49,11 +38,11 @@ def open_mol2(filepath: str, hydrogens_removal: bool = True) -> Molecule:
     Returns:
         Molecule: The loaded molecule
     """
-    redirect_c_std_err()
-    mol = next(readfile('mol2', filepath))
-    if hydrogens_removal:
-        mol.removeh()
-    return mol
+    with stderr_redirected(to='obabel.err'):
+        mol = next(readfile('mol2', filepath))
+        if hydrogens_removal:
+            mol.removeh()
+        return mol
 
 
 def atom_type_one_hot(atomic_num: int) -> List[int]:
@@ -342,12 +331,14 @@ def get_bonds_protein_ligand(protein: Molecule, ligand: Molecule,
     return p_to_l_edge_index, l_to_p_edge_index, p_to_l_edge_attr, l_to_p_edge_attr
 
 
-def featurize(protein_path: str, ligand_path: str, cutoff: float) -> Tuple:
+def featurize(protein_path: str, ligand_path: str, cutoff: float,
+              ligand_filetype: str = None) -> Tuple:
     """Featurize a protein and a ligand to a set of nodes and edges
 
     Args:
         protein_path (str): Path to the protein file (PDB)
-        ligand_path (str): Path to the ligand file (MOL2)
+        ligand_path (str): Path to the ligand file
+        ligand_filetype (str): Type of the Ligand (PDB or MOL2). Defaults to None
 
     Returns:
         Tuple: Nodes and edges
@@ -355,7 +346,14 @@ def featurize(protein_path: str, ligand_path: str, cutoff: float) -> Tuple:
     # protein_path can be protein or pocket path
     protein = open_pdb(protein_path, hydrogens_removal=True)
     protein.protein = True
-    ligand = open_mol2(ligand_path, hydrogens_removal=True)
+    ligand = None
+    if ligand_filetype is None:
+        ligand_filetype = osp.splitext(ligand_path).replace('.', '')
+    if ligand_filetype.lower() == 'mol2':
+        ligand = open_mol2(ligand_path, hydrogens_removal=True)
+    elif ligand_filetype.lower() == 'pdb':
+        ligand = open_pdb(ligand_path, hydrogens_removal=True)
+    assert ligand is not None, 'Error when loading ligand file'
     # Get PDB atom name
     ppdb = bpdb.PandasPdb()
     ppdb.read_pdb(protein_path)
