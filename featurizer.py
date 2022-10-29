@@ -56,7 +56,7 @@ def atom_type_one_hot(atomic_num: int) -> List[int]:
     """
     one_hot = 8 * [0]
     # B, C, N, O, F, P, S, and Others
-    used_atom_num = [5, 6, 7, 8, 9, 15, 16, 1]
+    used_atom_num = [5, 6, 7, 8, 9, 15, 16]
     d_atm_num = {5: 0, 6: 1, 7: 2, 8: 3, 9: 4, 15: 5, 16: 6}
     idx = 7  # others
     if atomic_num in used_atom_num:
