@@ -55,10 +55,13 @@ def atom_type_one_hot(atomic_num: int) -> List[int]:
         List[int]: The one-hot encoded type
     """
     one_hot = 8 * [0]
-    used_atom_num = [5, 6, 7, 8, 9, 15, 16]  # B, C, N, O, F, P, S, and Others
+    # B, C, N, O, F, P, S, and Others
+    used_atom_num = [5, 6, 7, 8, 9, 15, 16, 1]
     d_atm_num = {5: 0, 6: 1, 7: 2, 8: 3, 9: 4, 15: 5, 16: 6}
+    idx = 7  # others
     if atomic_num in used_atom_num:
-        one_hot[d_atm_num[atomic_num]] = 1
+        idx = d_atm_num[atomic_num]
+    one_hot[idx] = 1
     return one_hot
 
 
@@ -384,7 +387,3 @@ def featurize(protein_path: str, ligand_path: str, cutoff: float,
             l_to_p_atm_edge_attr,  # ligand_atoms ->  protein_atoms
             p_atm_to_l_edge_attr  # protein_atoms -> ligand_atoms
             )
-
-
-featurize("data/raw/5ujo/5ujo_pocket.pdb",
-          "data/raw/5ujo/5ujo_ligand.mol2", 4.0)
