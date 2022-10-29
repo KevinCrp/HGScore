@@ -348,7 +348,7 @@ def featurize(protein_path: str, ligand_path: str, cutoff: float,
     protein.protein = True
     ligand = None
     if ligand_filetype is None:
-        ligand_filetype = osp.splitext(ligand_path).replace('.', '')
+        ligand_filetype = osp.splitext(ligand_path)[1].replace('.', '')
     if ligand_filetype.lower() == 'mol2':
         ligand = open_mol2(ligand_path, hydrogens_removal=True)
     elif ligand_filetype.lower() == 'pdb':
