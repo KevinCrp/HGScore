@@ -4,7 +4,7 @@
 
 1. Create a conda environment or a Docker container with provided files
 2. Download the PDBBind database from http://www.pdbbind.org.cn/ with `download_pdbbind.sh`. Extracted PDBBind complexes are stored in *data/raw/*
-3. Our dataset split is provided with *data/*.csv* files. Or make your own split using the `split_pdbbind.py` script. Splits are Train, Val, Casf13, and Casf16
+3. Our dataset split is provided with *data/\*.csv* files. Or make your own split using the `split_pdbbind.py` script. Splits are Train, Val, Casf13, and Casf16
 ````bash
 python split_pdbbind.py
 ````
