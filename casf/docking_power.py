@@ -4,13 +4,15 @@ import pandas as pd
 
 
 def docking_power_df(docking_power_df: pd.DataFrame,
-                     rmsd_cutoff: float) -> dict:
+                     rmsd_cutoff: float,
+                     plot_path: str) -> dict:
     """Compute CASF 2016 Docking power
 
     Args:
         docking_power_df (pd.DataFrame): A DF containing all scores and rmsd
             for all docking power decoys
         rmsd_cutoff (float): The RMSD cutoff (in angstrom) to define near-native docking pose
+        plot_path (str): Path where docking power curve will be saved
 
     Returns:
         dict: A dictionnary containing SP[2-10] and TOP[1-3]
@@ -123,6 +125,6 @@ def docking_power_df(docking_power_df: pd.DataFrame,
     ax.set_xticks([1, 10, 20, 30, 40, 50])
     ax.set_yticks([0, 20, 40, 60, 80, 100])
     ax.fill_between(tops_label, tops, 0, color='blue', alpha=.1)
-    plt.savefig('docking_power_curve.png')
+    plt.savefig(plot_path)
 
     return res_dict
