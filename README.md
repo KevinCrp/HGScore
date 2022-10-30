@@ -68,7 +68,7 @@ optional arguments:
   -protein_path PROTEIN_PATH, -p PROTEIN_PATH
                         Path to the protein PDB file
   -ligand_path LIGAND_PATH, -l LIGAND_PATH
-                        Path to the ligand MOL2 file
+                        Path to the ligand MOL2/PDB file
   -cutoff CUTOFF, -c CUTOFF
                         The cutoff to consider a link between a protein-ligand atom pair (Defaults to 4.0A)
   -extract_pocket       Extract the pocket according to the ligand's position, no necessary if the pocket is already provided by protein path

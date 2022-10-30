@@ -13,7 +13,21 @@ import model as md
 from data import clean_pdb, create_pyg_graph
 
 
-def residue_close_to_ligand(ligand_coords, res_coords, cutoff):
+def residue_close_to_ligand(ligand_coords: np.ndarray,
+                            res_coords: np.ndarray,
+                            cutoff: float) -> bool:
+    """Check if a protein's residue is close to a ligand according to the coordinates.
+        Only heavy atoms are considered
+
+
+    Args:
+        ligand_coords (np.ndarray): The ligand's coordinates
+        res_coords (np.ndarray): The protein's coordinates
+        cutoff (float): Cutoff to consider a residue as close to the ligand
+
+    Returns:
+        bool: Is the residue close to the ligand
+    """
     for res_coord in res_coords:
         for lig_coord in ligand_coords:
             distance = np.linalg.norm(res_coord - lig_coord)
@@ -22,7 +36,18 @@ def residue_close_to_ligand(ligand_coords, res_coords, cutoff):
     return False
 
 
-def pocket_extraction(prot_path, lig_path, pocket_out_path, cutoff):
+def pocket_extraction(prot_path: str,
+                      lig_path: str,
+                      pocket_out_path: str,
+                      cutoff: float):
+    """Extract the protein binding pocket
+
+    Args:
+        prot_path (str): Path to the protein PDB
+        lig_path (str): Path to the ligand (PDB or MOL2)
+        pocket_out_path (str): Path where the extracted pocket will be saved
+        cutoff (float): Cutoff to consider a residue as close to the ligand
+    """
     ppdb_prot = PandasPdb()
     ppdb_prot.read_pdb(prot_path)
 
@@ -89,7 +114,26 @@ def make_bipartite_graph(protein_path: str,
     return bipartite_graph
 
 
-def predict(protein_path, ligand_path, model_path, atomic_distance_cutoff, extract_pocket, pocket_cutoff):
+def predict(protein_path: str,
+            ligand_path: str,
+            model_path: str,
+            atomic_distance_cutoff: float,
+            extract_pocket: bool,
+            pocket_cutoff: float) -> float:
+    """Predict the affinity score for a given complex
+
+    Args:
+        protein_path (str): Path to the protein PDB file
+        ligand_path (str): Path to the ligand MOL2/PDB file
+        model_path (str): Path to the torch Checkpoint
+        atomic_distance_cutoff (float): The cutoff to consider a link between a protein-ligand atom pair
+        extract_pocket (bool): Extract the pocket according to the ligand's position,
+            no necessary if the pocket is already provided by protein path
+        pocket_cutoff (float): Cutoff for pocket extraction
+
+    Returns:
+        float: The complex's score
+    """    
     if extract_pocket:
         prot_dir, prot_name = osp.split(protein_path)
         pocket_path = osp.join(prot_dir, "bgpls_pocket_{}".format(prot_name))
@@ -122,7 +166,7 @@ if __name__ == '__main__':
     parser.add_argument('-protein_path', '-p', type=str,
                         help='Path to the protein PDB file', required=True)
     parser.add_argument('-ligand_path', '-l', type=str,
-                        help='Path to the ligand MOL2 file', required=True)
+                        help='Path to the ligand MOL2/PDB file', required=True)
     parser.add_argument('-cutoff', '-c',
                         type=float,
                         help='The cutoff to consider a link between a protein-ligand atom pair (Defaults to 4.0A)',
