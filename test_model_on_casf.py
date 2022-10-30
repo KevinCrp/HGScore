@@ -158,6 +158,7 @@ if __name__ == '__main__':
             do_plot=args.plot, plot_path=plot_16_path)
 
         if args.docking_power:
+            print("\tDocking Power (CASF 2016)")
             dt_dp = data.DockingPower_Dataset(root=cfg.data_path,
                                               year='16',
                                               atomic_distance_cutoff=atomic_distance_cutoff,
