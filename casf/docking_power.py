@@ -109,11 +109,11 @@ def docking_power_df(docking_power_df: pd.DataFrame,
                 "sp8": sp8,
                 "sp9": sp9,
                 "sp10": sp10,
-                "top1_success": tops[0],
+                "top1_success": round(tops[0], 2),
                 "top1_correct": top1_correct,
-                "top2_success": tops[1],
+                "top2_success": round(tops[1], 2),
                 "top2_correct": top2_correct,
-                "top3_success": tops[2],
+                "top3_success": round(tops[2], 2),
                 "top3_correct": top3_correct}
 
     fig, ax = plt.subplots()
