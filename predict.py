@@ -119,7 +119,7 @@ def predict(protein_path: str,
             model_path: str,
             atomic_distance_cutoff: float,
             extract_pocket: bool,
-            pocket_cutoff: float) -> float:
+            pocket_cutoff: float=0.0) -> float:
     """Predict the affinity score for a given complex
 
     Args:
@@ -129,7 +129,7 @@ def predict(protein_path: str,
         atomic_distance_cutoff (float): The cutoff to consider a link between a protein-ligand atom pair
         extract_pocket (bool): Extract the pocket according to the ligand's position,
             no necessary if the pocket is already provided by protein path
-        pocket_cutoff (float): Cutoff for pocket extraction
+        pocket_cutoff (float): Cutoff for pocket extraction. Defaults to 0.0.
 
     Returns:
         float: The complex's score
@@ -156,7 +156,7 @@ def predict(protein_path: str,
     model = md.Model.load_from_checkpoint(model_path)
 
     score = model.predict(batch)
-    return score
+    return round(score, 2)
 
 
 if __name__ == '__main__':
