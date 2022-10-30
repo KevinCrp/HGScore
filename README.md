@@ -58,7 +58,8 @@ python test_model_on_casf.py -ckpt models/model.ckpt -c 4.0 -p -casf_13 -casf_16
 ````
 11. Score a protein-ligand complex with `python predict.py`
 ````bash
-usage: predict.py [-h] -checkpoint_path CHECKPOINT_PATH -protein_path PROTEIN_PATH -ligand_path LIGAND_PATH [-cutoff CUTOFF]
+usage: predict.py [-h] -checkpoint_path CHECKPOINT_PATH -protein_path PROTEIN_PATH -ligand_path LIGAND_PATH [-cutoff CUTOFF] [-extract_pocket]
+                  [-extract_pocket_cutoff EXTRACT_POCKET_CUTOFF]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -67,7 +68,10 @@ optional arguments:
   -protein_path PROTEIN_PATH, -p PROTEIN_PATH
                         Path to the protein PDB file
   -ligand_path LIGAND_PATH, -l LIGAND_PATH
-                        Path to the ligand MOL2 file
+                        Path to the ligand MOL2/PDB file
   -cutoff CUTOFF, -c CUTOFF
-                        The cutoff to consider a link between a protein-ligand atom pair (defaults to 4.0)
+                        The cutoff to consider a link between a protein-ligand atom pair (Defaults to 4.0A)
+  -extract_pocket       Extract the pocket according to the ligand's position, no necessary if the pocket is already provided by protein path
+  -extract_pocket_cutoff EXTRACT_POCKET_CUTOFF
+                        Cutoff for pocket extraction (Defaults to 10.0A)
 ````
