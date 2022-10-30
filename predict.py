@@ -21,8 +21,8 @@ def make_bipartite_graph(protein_path: str,
     Returns:
         pyg.data.HeteroData: The bipartite graph
     """
-    protein_dir, protein_path = osp.split(protein_path)
-    clean_protein_path = 'clean_' + protein_path
+    protein_dir, protein_name = osp.split(protein_path)
+    clean_protein_path = 'clean_' + protein_name
     clean_protein_path = osp.join(protein_dir, clean_protein_path)
     if not osp.exists(clean_protein_path):
         clean_pdb(protein_path, clean_protein_path)
@@ -56,7 +56,6 @@ if __name__ == '__main__':
         sys.exit()
     if not osp.exists(ligand_path):
         print('Error {} not found'.format(ligand_path))
-
     bipartite_graph = make_bipartite_graph(protein_path,
                                            ligand_path,
                                            atomic_distance_cutoff=atomic_distance_cutoff)
