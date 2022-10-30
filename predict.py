@@ -54,10 +54,10 @@ def pocket_extraction(prot_path: str,
     ppdb_prot.df['ATOM'] = ppdb_prot.df['ATOM'][ppdb_prot.df['ATOM']
                                                 ['element_symbol'] != 'H']
 
-    ligand_filetype = osp.splitext(ligand_path)[1].replace('.', '')
+    ligand_filetype = osp.splitext(lig_path)[1].replace('.', '')
     if ligand_filetype.lower() == 'mol2':
         pmol2_lig = PandasMol2()
-        pmol2_lig.read_mol2(ligand_path)
+        pmol2_lig.read_mol2(lig_path)
         df_atom_lig = pmol2_lig.df[pmol2_lig.df['atom_type'] != 'H']
         ligand_coords = df_atom_lig[[
             'x', 'y', 'z']].to_numpy()
