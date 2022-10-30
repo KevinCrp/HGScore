@@ -24,5 +24,6 @@ RUN conda install xorg-libxrender=0.9.10 -c conda-forge -y
 RUN conda install scipy=1.7.3 -c anaconda -y
 RUN conda install matplotlib=3.5.3 -c conda-forge -y
 RUN conda install oddt=0.7 -c conda-forge -y
+RUN conda install seaborn=0.12.1 -c conda-forge -y
 
 RUN pip install class-resolver==0.3.10

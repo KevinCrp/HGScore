@@ -1,24 +1,31 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
 
 def docking_power_df(docking_power_df: pd.DataFrame,
-                     rmsd_cutoff: float) -> dict:
+                     rmsd_cutoff: float,
+                     plot_path: str) -> dict:
     """Compute CASF 2016 Docking power
 
     Args:
         docking_power_df (pd.DataFrame): A DF containing all scores and rmsd
             for all docking power decoys
         rmsd_cutoff (float): The RMSD cutoff (in angstrom) to define near-native docking pose
+        plot_path (str): Path where docking power curve will be saved
 
     Returns:
         dict: A dictionnary containing SP[2-10] and TOP[1-3]
     """
     # Adapted from CASF 2016/Docking_power.py
+
+    nb_top = 50 + 1
+    top_df = []
+    tops = []
+    tops_label = []
     pdb_list = list(set(docking_power_df['pdb_id'].to_list()))
-    Top1 = pd.DataFrame(index=pdb_list, columns=['success'])
-    Top2 = pd.DataFrame(index=pdb_list, columns=['success'])
-    Top3 = pd.DataFrame(index=pdb_list, columns=['success'])
+    for j in np.arange(1, nb_top):
+        top_df += [pd.DataFrame(index=pdb_list, columns=['success'])]
     SP2 = pd.DataFrame(index=pdb_list, columns=['spearman'])
     SP3 = pd.DataFrame(index=pdb_list, columns=['spearman'])
     SP4 = pd.DataFrame(index=pdb_list, columns=['spearman'])
@@ -46,10 +53,9 @@ def docking_power_df(docking_power_df: pd.DataFrame,
         docking_results.loc[tmp]['RMSD3'] = float(df_sorted[2:3]['rmsd'])
         docking_results.loc[tmp]['code'] = pdb
         tmp += 1
-        for j in np.arange(1, 4):
+        for j in np.arange(1, nb_top):
             minrmsd = df_sorted[0:j]['rmsd'].min()
-            varname = 'Top' + str(j)
-            top = locals()[varname]
+            top = top_df[j-1]
             if minrmsd <= rmsd_cutoff:
                 top.loc[pdb]['success'] = 1
             else:
@@ -74,23 +80,25 @@ def docking_power_df(docking_power_df: pd.DataFrame,
     SP9 = SP9.dropna(subset=['spearman'])
     SP10 = SP10.dropna(subset=['spearman'])
 
-    top1_success = float(Top1['success'].sum()) / float(Top1.shape[0]) * 100
-    top2_success = float(Top2['success'].sum()) / float(Top2.shape[0]) * 100
-    top3_success = float(Top3['success'].sum()) / float(Top3.shape[0]) * 100
+    for j in np.arange(1, nb_top):
+        top = top_df[j-1]
+        top_succes = float(top['success'].sum()) / float(top.shape[0]) * 100
+        tops += [top_succes]
+        tops_label += [j]
 
-    sp2 = round(SP2['spearman'].mean(), 3)
-    sp3 = round(SP3['spearman'].mean(), 3)
-    sp4 = round(SP4['spearman'].mean(), 3)
-    sp5 = round(SP5['spearman'].mean(), 3)
-    sp6 = round(SP6['spearman'].mean(), 3)
-    sp7 = round(SP7['spearman'].mean(), 3)
-    sp8 = round(SP8['spearman'].mean(), 3)
-    sp9 = round(SP9['spearman'].mean(), 3)
-    sp10 = round(SP10['spearman'].mean(), 3)
+    sp2 = round(SP2['spearman'].mean(), 2)
+    sp3 = round(SP3['spearman'].mean(), 2)
+    sp4 = round(SP4['spearman'].mean(), 2)
+    sp5 = round(SP5['spearman'].mean(), 2)
+    sp6 = round(SP6['spearman'].mean(), 2)
+    sp7 = round(SP7['spearman'].mean(), 2)
+    sp8 = round(SP8['spearman'].mean(), 2)
+    sp9 = round(SP9['spearman'].mean(), 2)
+    sp10 = round(SP10['spearman'].mean(), 2)
 
-    top1_correct = Top1['success'].sum()
-    top2_correct = Top2['success'].sum()
-    top3_correct = Top3['success'].sum()
+    top1_correct = top_df[0]['success'].sum()
+    top2_correct = top_df[1]['success'].sum()
+    top3_correct = top_df[2]['success'].sum()
 
     res_dict = {"sp2": sp2,
                 "sp3": sp3,
@@ -101,11 +109,22 @@ def docking_power_df(docking_power_df: pd.DataFrame,
                 "sp8": sp8,
                 "sp9": sp9,
                 "sp10": sp10,
+                "top1_success": round(tops[0], 2),
                 "top1_correct": top1_correct,
-                "top1_success": top1_success,
+                "top2_success": round(tops[1], 2),
                 "top2_correct": top2_correct,
-                "top2_success": top2_success,
-                "top3_correct": top3_correct,
-                "top3_success": top3_success}
+                "top3_success": round(tops[2], 2),
+                "top3_correct": top3_correct}
+
+    fig, ax = plt.subplots()
+    ax.plot(tops_label, tops, color='blue', alpha=1.00)
+    ax.set_xlabel('Top')
+    ax.set_ylabel('Success rate (%)')
+    ax.set_xlim((1, nb_top))
+    ax.set_ylim((0, 110))
+    ax.set_xticks([1, 10, 20, 30, 40, 50])
+    ax.set_yticks([0, 20, 40, 60, 80, 100])
+    ax.fill_between(tops_label, tops, 0, color='blue', alpha=.1)
+    plt.savefig(plot_path)
 
     return res_dict

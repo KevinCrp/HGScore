@@ -1,8 +1,10 @@
 import argparse
+from dataclasses import dataclass, field
 import multiprocessing as mp
 import os
 import os.path as osp
 import re
+from typing import Dict, List, Union
 
 import pandas as pd
 import pytorch_lightning as pl
@@ -139,28 +141,22 @@ def process_graph(raw_path: str,
     return processed_filename
 
 
+@dataclass
 class PDBBindDataset(pyg.data.InMemoryDataset):
     """Torch Geometric Dataset, used for Train and Val set
     """
+    root: str  # The data directory
+    stage: str  # train or val
+    atomic_distance_cutoff: float  # Cutoff for inter-atomic distance.
+    # Use only the binding pocket or not. Defaults to False.
+    only_pocket: bool = field(default=False)
 
-    def __init__(self, root: str, stage: str,
-                 atomic_distance_cutoff: float,
-                 only_pocket: bool = False):
-        """init
-
-        Args:
-            root (str): The data directory
-            stage (str): Train or val
-            atomic_distance_cutoff (float): Cutoff for inter-atomic distance.
-            only_pocket (bool, optional): Use only the binding pocket or not. Defaults to False.
-        """
-        self.stage = stage
-        self.atomic_distance_cutoff = atomic_distance_cutoff
-        self.only_pocket = only_pocket
-        self.prefix = 'pocket' if only_pocket else 'protein'
+    # post init function
+    def __post_init__(self):
+        self.prefix = 'pocket' if self.only_pocket else 'protein'
         self.df = pd.read_csv(
-            osp.join(cfg.data_path, '{}.csv'.format(stage))).set_index('pdb_id')
-        super().__init__(root)
+            osp.join(cfg.data_path, '{}.csv'.format(self.stage))).set_index('pdb_id')
+        super().__init__(self.root)
         self.data, self.slices = torch.load(self.processed_paths[0])
 
     @property
@@ -190,7 +186,7 @@ class PDBBindDataset(pyg.data.InMemoryDataset):
                               self.only_pocket,
                              self.df.loc[pdb_id]['target']))
             i += 1
-        pool = mp.Pool(cfg.preprocessing_nb_cpu)
+        pool = mp.Pool(mp.cpu_count())
         data_path_list = list(pool.starmap(process_graph, pool_args))
         data_list = []
         for p in data_path_list:
@@ -201,20 +197,22 @@ class PDBBindDataset(pyg.data.InMemoryDataset):
         torch.save((data, slices), self.processed_paths[0])
 
 
+@dataclass
 class CASFDataset(pyg.data.InMemoryDataset):
     """Torch Geometric Dataset, used for Test CASF13 and CASF16
     """
+    root: str  # The data directory
+    year: str  # The CASF year version
+    atomic_distance_cutoff: float  # Cutoff for inter-atomic distance.
+    # Use only the binding pocket or not. Defaults to False.
+    only_pocket: bool = field(default=False)
 
-    def __init__(self, root: str, year: str,
-                 atomic_distance_cutoff: float,
-                 only_pocket: bool = False):
-        self.year = year
-        self.atomic_distance_cutoff = atomic_distance_cutoff
-        self.only_pocket = only_pocket
-        self.prefix = 'pocket' if only_pocket else 'protein'
+    # post init function
+    def __post_init__(self):
+        self.prefix = 'pocket' if self.only_pocket else 'protein'
         self.df = pd.read_csv(
-            osp.join(cfg.data_path, 'casf{}.csv'.format(year))).set_index('pdb_id')
-        super().__init__(root)
+            osp.join(cfg.data_path, 'casf{}.csv'.format(self.year))).set_index('pdb_id')
+        super().__init__(self.root)
         self.data, self.slices = torch.load(self.processed_paths[0])
 
     @property
@@ -245,7 +243,7 @@ class CASFDataset(pyg.data.InMemoryDataset):
                              self.df.loc[pdb_id]['cluster'],
                              pdb_id))
             i += 1
-        pool = mp.Pool(cfg.preprocessing_nb_cpu)
+        pool = mp.Pool(mp.cpu_count())
         data_path_list = list(pool.starmap(process_graph, pool_args))
         data_list = []
         for p in data_path_list:
@@ -255,31 +253,21 @@ class CASFDataset(pyg.data.InMemoryDataset):
         torch.save((data, slices), self.processed_paths[0])
 
 
+@dataclass
 class PDBBindDataModule(pl.LightningDataModule):
     """PyTorch Lightning Datamodule
     """
+    root: str  # Path to the data directory.
+    atomic_distance_cutoff: float  # Cutoff for inter-atomic distance.
+    batch_size: int = field(default=1)  # The batch size. Defaults to 1.
+    # The number of workers. Defaults to 1.
+    num_workers: int = field(default=1)
+    # Use only the binding pocket or not. Defaults to False.
+    only_pocket: bool = field(default=False)
+    # Use persistent workers in dataloader
+    persistent_workers: bool = field(default=True)
 
-    def __init__(self, root: str,
-                 atomic_distance_cutoff: float,
-                 batch_size: int = 1, num_workers: int = 1,
-                 only_pocket: bool = False, sample_percent: bool = 100.0):
-        """Allows to encompass all the PDBBind sub datasets used in order to use them with PyTorchLightning
-
-        Args:
-            root (str): Path to the data directory.
-            atomic_distance_cutoff (float): Cutoff for inter-atomic distance.
-            batch_size (int, optional): The batch size. Defaults to 1.
-            num_workers (int, optional): The number of workers. Defaults to 1.
-            only_pocket (bool, optional): Use only the binding pocket or not. Defaults to False.
-            sample_percent (float, optional): Use it to train/validate on a subset of the dataset
-        """
-        self.atomic_distance_cutoff = atomic_distance_cutoff
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.root = root
-        self.only_pocket = only_pocket
-        self.persistent_workers = True
-        self.sample_percent = sample_percent
+    def __post_init__(self):
         super().__init__()
 
     def prepare_data(self):
@@ -292,15 +280,7 @@ class PDBBindDataModule(pl.LightningDataModule):
         self.dt_val = PDBBindDataset(
             root=self.root, atomic_distance_cutoff=self.atomic_distance_cutoff,
             stage='val', only_pocket=self.only_pocket)
-        if self.sample_percent != 100.0:
-            nb_item_subset_train = int(
-                len(self.dt_train) * self.sample_percent / 100)
-            self.dt_train = self.dt_train.index_select(
-                range(0, nb_item_subset_train))
-            nb_item_subset_val = int(
-                len(self.dt_val) * self.sample_percent / 100)
-            self.dt_val = self.dt_val.index_select(
-                range(0, nb_item_subset_val))
+        
         self.dt_casf_13 = CASFDataset(root=cfg.data_path, year='13',
                                       atomic_distance_cutoff=self.atomic_distance_cutoff,
                                       only_pocket=cfg.data_use_only_pocket)
@@ -332,6 +312,15 @@ class PDBBindDataModule(pl.LightningDataModule):
                                      num_workers=self.num_workers,
                                      persistent_workers=self.persistent_workers)
 
+    def casf_dataloader(self, casf_version: Union[int, str]):
+        if isinstance(casf_version, int):
+            casf_version = str(casf_version)
+        if casf_version == '13':
+            return self.casf_13_dataloader()
+        elif casf_version == '16':
+            return self.casf_16_dataloader()
+        return None
+
     def test_dataloader(self):
         return pyg.loader.DataLoader(self.dt_casf_16,
                                      batch_size=1,
@@ -339,7 +328,15 @@ class PDBBindDataModule(pl.LightningDataModule):
                                      persistent_workers=self.persistent_workers)
 
 
-def read_decoy_rmsd(path: str):
+def read_decoy_rmsd(path: str) -> pd.DataFrame:
+    """Load the docking power decoys' rmsd into a Dataframe
+
+    Args:
+        path (str): Path to the csv containing the docking power decoys' rmsd
+
+    Returns:
+        pd.DataFrame: The Dataframe
+    """    
     lst_for_df = []
     with open(path, 'r') as f:
         for line in f.readlines():
@@ -352,13 +349,30 @@ def read_decoy_rmsd(path: str):
     return df
 
 
-def clean_backbone_str(lines):
+def clean_backbone_str(lines: List[str]) -> List[str]:
+    """Clear the MOL2 ATOM lines by removing "BACKBONE" at the end of the lines
+
+    Args:
+        lines (List[str]): The MOL2 ATOM lines
+
+    Returns:
+        List[str]: The cleaned lines
+    """    
     for i in range(len(lines)):
-        lines[i]=lines[i].replace("BACKBONE\n", '\n')
+        lines[i] = lines[i].replace("BACKBONE\n", '\n')
     return lines
 
 
-def split_multi_mol2(mol2_path: str, rmsd_path: str):
+def split_multi_mol2(mol2_path: str, rmsd_path: str) -> Dict:
+    """For a given docking power complex, split into a Dict all decoys
+
+    Args:
+        mol2_path (str): Path to the decoys mol2 file
+        rmsd_path (str): Path to the decoys rmsd file
+
+    Returns:
+        Dict: A dictionnary
+    """    
     mol2_dict = {}
     pdmol = PandasMol2()
     df_rmsd = read_decoy_rmsd(rmsd_path)
@@ -414,20 +428,22 @@ def process_graph_for_docking_power(raw_path_protein: str,
     return processed_filename
 
 
+@dataclass
 class DockingPower_Dataset(pyg.data.InMemoryDataset):
     """Torch Geometric Dataset, used for Docking Power
     """
 
-    def __init__(self, root: str, year: str,
-                 atomic_distance_cutoff: float,
-                 only_pocket: bool = False):
-        self.year = year
-        self.atomic_distance_cutoff = atomic_distance_cutoff
-        self.only_pocket = only_pocket
-        self.prefix = 'pocket' if only_pocket else 'protein'
+    root: str  # The data directory
+    year: str  # The CASF year version
+    atomic_distance_cutoff: float  # Cutoff for inter-atomic distance.
+    # Use only the binding pocket or not. Defaults to False.
+    only_pocket: bool = field(default=False)
+
+    def __post_init__(self):
+        self.prefix = 'pocket' if self.only_pocket else 'protein'
         self.df = pd.read_csv(
-            osp.join(cfg.data_path, 'casf{}.csv'.format(year))).set_index('pdb_id')
-        super().__init__(root)
+            osp.join(cfg.data_path, 'casf{}.csv'.format(self.year))).set_index('pdb_id')
+        super().__init__(self.root)
         self.data, self.slices = torch.load(self.processed_paths[0])
 
     @property
@@ -474,7 +490,7 @@ class DockingPower_Dataset(pyg.data.InMemoryDataset):
                                   self.only_pocket,
                                   pdb_id, mol2_dict[key][1], key))
                 i += 1
-        pool = mp.Pool(cfg.preprocessing_nb_cpu)
+        pool = mp.Pool(mp.cpu_count())
         data_path_list = list(pool.starmap(process_graph_for_docking_power,
                                            pool_args))
         data_list = []
@@ -485,26 +501,19 @@ class DockingPower_Dataset(pyg.data.InMemoryDataset):
         torch.save((data, slices), self.processed_paths[0])
 
 
+@dataclass
 class DockingPowerDataModule(pl.LightningDataModule):
-    def __init__(self, root: str,
-                 atomic_distance_cutoff: float,
-                 batch_size: int = 1, num_workers: int = 1,
-                 only_pocket: bool = False):
-        """_summary_
+    root: str  # Path to the data directory.
+    atomic_distance_cutoff: float  # Cutoff for inter-atomic distance.
+    batch_size: int = field(default=1)  # The batch size. Defaults to 1.
+    # The number of workers. Defaults to 1.
+    num_workers: int = field(default=1)
+    # Use only the binding pocket or not. Defaults to False.
+    only_pocket: bool = field(default=False)
+    # Use persistent workers in dataloader
+    persistent_workers: bool = field(default=True)
 
-        Args:
-            root (str): Path to the data directory.
-            atomic_distance_cutoff (float): Cutoff for inter-atomic distance.
-            batch_size (int, optional): The batch size. Defaults to 1.
-            num_workers (int, optional): The number of workers. Defaults to 1.
-            only_pocket (bool, optional): Use only the binding pocket or not. Defaults to False.
-        """
-        self.atomic_distance_cutoff = atomic_distance_cutoff
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.root = root
-        self.only_pocket = only_pocket
-        self.persistent_workers = True
+    def __post_init__(self):
         super().__init__()
 
     def prepare_data(self):
@@ -528,14 +537,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-cutoff', '-c',
                         type=float,
-                        help='If not set, config.py atomic_distance_cutoff is used')
+                        help='The cutoff to consider a link between a protein-ligand atom pair',
+                        default=4.0)
     parser.add_argument('-docking_power', '-dp',
                         action='store_true',
                         help='Flag allowing to create the docking power dataset')
     args = parser.parse_args()
     atomic_distance_cutoff = args.cutoff
-    if atomic_distance_cutoff is None:
-        atomic_distance_cutoff = cfg.atomic_distance_cutoff
     PDBBindDataset(root=cfg.data_path,
                    stage='train',
                    atomic_distance_cutoff=atomic_distance_cutoff,
@@ -555,6 +563,6 @@ if __name__ == '__main__':
                 only_pocket=cfg.data_use_only_pocket)
     if args.docking_power:
         DockingPower_Dataset(root=cfg.data_path,
-                            year='16',
-                            atomic_distance_cutoff=atomic_distance_cutoff,
-                            only_pocket=cfg.data_use_only_pocket)
+                             year='16',
+                             atomic_distance_cutoff=atomic_distance_cutoff,
+                             only_pocket=cfg.data_use_only_pocket)

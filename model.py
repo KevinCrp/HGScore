@@ -1,3 +1,4 @@
+import logging
 import os.path as osp
 import sys
 from typing import Dict, List, Tuple, Union
@@ -9,9 +10,9 @@ import torch_geometric as pyg
 import torchmetrics.functional as tmf
 
 import plotters
-from casf.ranking_power import ranking_power_pt
-from casf.scoring_power import scoring_power_pt
-from networks.bipartite_afp import BG_LPS
+from casf.ranking_power import ranking_power
+from casf.scoring_power import scoring_power
+from networks.bipartite_afp import BGCN_4_PLS
 
 
 class Model(pl.LightningModule):
@@ -29,7 +30,7 @@ class Model(pl.LightningModule):
                  lr: float,
                  weight_decay: float,
                  plot_path: str,
-                 num_timesteps: int,
+                 molecular_embedding_size: int,
                  str_for_hparams: str = ''):
         """_summary_
 
@@ -46,7 +47,7 @@ class Model(pl.LightningModule):
             lr (float): The learning rate
             weight_decay (float): The weight decay
             plot_path (str): Where save plots
-            num_timesteps (int): Number of timestep for molecular embedding
+            molecular_embedding_size (int): Number of timestep for molecular embedding
             str_for_hparams (str, optional): Allowing to save supplementary
                 information for tensorboard. Defaults to ''.
         """
@@ -57,26 +58,23 @@ class Model(pl.LightningModule):
         if isinstance(hidden_channels_la, int):
             hidden_channels_la = num_layers * [hidden_channels_la]
         if len(hidden_channels_pa) != num_layers:
-            print(
-                "Error: the num_layer doesn't match the given layer sizes in"
-                "config.ini")
+            logging.error("The num_layer doesn't match the given layer sizes in"
+                          " config.ini")
             sys.exit()
         self.plot_path = plot_path
-        self.model = BG_LPS(list_hidden_channels_pa=hidden_channels_pa,
-                            list_hidden_channels_la=hidden_channels_la,
-                            num_layers=num_layers,
-                            hetero_aggr=hetero_aggr,
-                            mlp_channels=mlp_channels,
-                            num_timesteps=num_timesteps,
-                            dropout=dropout,
-                            heads=heads,
-                            verbose=False)
+        self.model = BGCN_4_PLS(list_hidden_channels_pa=hidden_channels_pa,
+                                list_hidden_channels_la=hidden_channels_la,
+                                num_layers=num_layers,
+                                hetero_aggr=hetero_aggr,
+                                mlp_channels=mlp_channels,
+                                molecular_embedding_size=molecular_embedding_size,
+                                dropout=dropout,
+                                heads=heads)
 
         self.loss_funct = F.mse_loss
         self.lr = lr
         self.weight_decay = weight_decay
         self.prefix = 'pocket_'
-        # print(self.model)
 
     def get_nb_parameters(self, only_trainable: bool = False):
         """Get the number of model's parameters
@@ -187,39 +185,30 @@ class Model(pl.LightningModule):
                                     for x in outputs])
         r2 = tmf.r2_score(all_preds, all_targets)
         pearson = tmf.pearson_corrcoef(all_preds, all_targets)
-        self.log("ep_end_{}/loss".format(stage), avg_loss, sync_dist=True)
-        self.log("ep_end_{}/r2_score".format(stage), r2, sync_dist=True)
-        self.log("ep_end_{}/pearson".format(stage), pearson, sync_dist=True)
+        metrics_dict = {
+            "ep_end_{}/loss".format(stage): avg_loss,
+            "ep_end_{}/r2_score".format(stage): r2,
+            "ep_end_{}/pearson".format(stage): pearson
+        }
+        self.log_dict(metrics_dict, sync_dist=True)
 
-    def reset_casf_test(self):
-        """Reset all names and values used in model testing
+    def set_casf_test(self, version: Union[int, str]):
+        """Reset all names and values used in model testing according to the given version
+
+        Args:
+            version (Union[int, str]): The CASF's version, must be 13 or 16
         """
-        self.casf_name = 'casf_'
+        if isinstance(version, int):
+            version = str(version)
+        self.casf_name = 'casf_' + version
+        self.reg_linear_name = 'reg_linear_' + version + '.png'
+        self.output_csv = 'scores_' + version + '.csv'
+
         self.ranking_nb_in_clusters = 0
-        self.reg_linear_name = 'reg_linear_'
-        self.output_csv = 'scores_'
-
-    def set_casf13_test(self):
-        """Set all names and values used in model testing according to CASF 13
-            Must be called before trainer.test(trained_model,
-                datamodule.casf_13_dataloader())
-        """
-        self.reset_casf_test()
-        self.casf_name += '13'
-        self.ranking_nb_in_clusters = 3
-        self.reg_linear_name += '13.png'
-        self.output_csv += '13.csv'
-
-    def set_casf16_test(self, suffix: str = ""):
-        """Set all names and values used in model testing according to CASF 16
-            Must be called before trainer.test(trained_model,
-                datamodule.casf_16_dataloader())
-        """
-        self.reset_casf_test()
-        self.casf_name += '16_' + suffix
-        self.ranking_nb_in_clusters = 5
-        self.reg_linear_name += '16_{}.png'.format(suffix)
-        self.output_csv += '16_{}.csv'.format(suffix)
+        if version == '13':
+            self.ranking_nb_in_clusters = 3
+        elif version == '16':
+            self.ranking_nb_in_clusters = 5
 
     def test_epoch_end(self, outputs: List):
         """Called after each test epoch. CASF metrics are computed and
@@ -241,7 +230,7 @@ class Model(pl.LightningModule):
 
     def metrics_on_test(self, avg_loss: torch.Tensor, all_preds: torch.Tensor,
                         all_targets: torch.Tensor, all_clusters: torch.Tensor,
-                        all_pdb_id: List):
+                        all_pdb_id: List[str]):
         """Computes Scoring and Ranking powers, logs metrics and plots them
 
         Args:
@@ -250,12 +239,12 @@ class Model(pl.LightningModule):
             all_targets (torch.Tensor): All targets
             all_clusters (torch.Tensor): For each complex, the corresponding
                 cluster
-            all_pdb_id (List): For each complex, the correspoding PDB id
+            all_pdb_id (List[str]): For each complex, the correspoding PDB id
         """
-        pearson, sd, nb_favorable, mae, rmse = scoring_power_pt(
-            all_preds, all_targets)
-        spearman, kendall, pi = ranking_power_pt(
-            all_preds, all_targets, self.ranking_nb_in_clusters, all_clusters)
+        pearson, sd, nb_favorable, mae, rmse = scoring_power(
+            preds=all_preds, targets=all_targets)
+        spearman, kendall, pi = ranking_power(
+            all_preds, all_targets, all_clusters, self.ranking_nb_in_clusters)
         plotters.plot_linear_reg(all_preds, all_targets,
                                  pearson, sd,
                                  osp.join(self.plot_path,
@@ -267,17 +256,19 @@ class Model(pl.LightningModule):
         pearson = float('nan') if pearson is None else pearson
         sd = float('nan') if sd is None else sd
 
-        self.log(self.casf_name + "/loss", avg_loss, sync_dist=True)
-        self.log(self.casf_name + "/r2_score", r2, sync_dist=True)
-        self.log(self.casf_name + "/pearson", pearson, sync_dist=True)
-        self.log(self.casf_name + "/sd", sd, sync_dist=True)
-        self.log(self.casf_name + "/mae", mae, sync_dist=True)
-        self.log(self.casf_name + "/rmse", rmse, sync_dist=True)
-        self.log(self.casf_name + "/spearman", spearman, sync_dist=True)
-        self.log(self.casf_name + "/kendall", kendall, sync_dist=True)
-        self.log(self.casf_name + "/pi", pi, sync_dist=True)
-        self.log(self.casf_name + "/nb_favorable",
-                 torch.tensor(nb_favorable), sync_dist=True)
+        metrics_dict = {
+            self.casf_name + "/loss": avg_loss,
+            self.casf_name + "/r2_score": r2,
+            self.casf_name + "/pearson": pearson,
+            self.casf_name + "/sd": sd,
+            self.casf_name + "/mae": mae,
+            self.casf_name + "/rmse": rmse,
+            self.casf_name + "/spearman": spearman,
+            self.casf_name + "/kendall": kendall,
+            self.casf_name + "/pi": pi,
+            self.casf_name + "/nb_favorable": torch.tensor(nb_favorable, dtype=torch.float32)
+        }
+        self.log_dict(metrics_dict, sync_dist=True)
 
     def validation_epoch_end(self, outputs: List):
         self.common_epoch_end(outputs, 'val')
@@ -288,12 +279,7 @@ class Model(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr,
                                      weight_decay=self.weight_decay)
-        # lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-        #                                               step_size=50,
-        #                                                gamma=0.7)
-        return {"optimizer": optimizer}  # ,
-        # "lr_scheduler": lr_scheduler,
-        # "monitor": "ep_end/val_loss"}
+        return {"optimizer": optimizer}
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         return self(batch)

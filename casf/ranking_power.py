@@ -38,28 +38,28 @@ def cal_PI(df: pd.DataFrame) -> float:
     return pi
 
 
-def ranking_power_pt(preds: torch.Tensor,
-                     target: torch.Tensor,
-                     num_in_cluster: int,
-                     clusters: torch.Tensor) -> Tuple[float, float, float]:
-    """Compute the CASF scoring power from PyTorch Tensors
+def tensors_to_df(preds: torch.Tensor,
+                  targets: torch.Tensor,
+                  clusters: torch.Tensor) -> Tuple[float, float, float]:
+    """Save tensors into a Dataframe to compute ranking power
 
     Args:
         preds (torch.Tensor): The predicted tensor
-        target (torch.Tensor): The real tensor
-        num_in_cluster (int): The number if items in each cluster (v13 : 3; v16 : 5)
+        targets (torch.Tensor): The real tensor
         cluster (torch.Tensor): Cluster ID for ranking.
 
     Returns:
-        Tuple[float, float, float]: Spearman’s rank correlation coefficient; Kendall’s rank correlation coefficient; Predictive Index
+        pd.DataFrame: A Dataframe containing ['score', 'logKa', 'cluster']
     """
-    t = torch.cat((preds.view(-1, 1), target.view(-1, 1),
+    t = torch.cat((preds.view(-1, 1), targets.view(-1, 1),
                   clusters.view(-1, 1)), -1).cpu().numpy()
     df = pd.DataFrame(t, columns=['score', 'logKa', 'cluster'])
-    return ranking_power(df, num_in_cluster)
+    return df
 
 
-def ranking_power(df: pd.DataFrame,
+def ranking_power(preds: torch.Tensor,
+                  targets: torch.Tensor,
+                  clusters: torch.Tensor,
                   num_in_cluster: int) -> Tuple[float, float, float]:
     """Compute CASF Ranking power metrics:
      * Spearman’s rank correlation coefficient
@@ -67,12 +67,15 @@ def ranking_power(df: pd.DataFrame,
      * Predictive Index
 
     Args:
-        df (pd.DataFrame): A Dataframe containing columns score, logKa, and cluster
+        preds (torch.Tensor): The predicted tensor
+        targets (torch.Tensor): The real tensor
+        cluster (torch.Tensor): Cluster ID for ranking.
         num_in_cluster (int): The number if items in each cluster (v13 : 3; v16 : 5)
 
     Returns:
         Tuple[float, float, float]: Spearman’s rank correlation coefficient; Kendall’s rank correlation coefficient; Predictive Index
     """
+    df = tensors_to_df(preds, targets, clusters)
     # Predicted scores are round because in code proposed by CASF authors, the metrics are computed on rounded scores
     df.score = df.score.round(2)
     nb_clusters = len(df) // num_in_cluster + 1
@@ -95,3 +98,6 @@ def ranking_power(df: pd.DataFrame,
     pi_mean = pi_sum / nb_clusters
 
     return spearman_mean, kendall_mean, pi_mean
+
+def ranking_power_pt():
+    pass

@@ -97,8 +97,7 @@ class HeteroAFP_Atomic(torch.nn.Module):
                  num_layers: int,
                  dropout: float,
                  heads: int,
-                 hetero_aggr: str = 'sum',
-                 verbose: bool = False):
+                 hetero_aggr: str = 'sum'):
         """Construct the atomic embedding part
 
         Args:
@@ -108,19 +107,12 @@ class HeteroAFP_Atomic(torch.nn.Module):
             dropout (float): Dropout rate
             heads (int): Number of heads
             hetero_aggr (str, optional): How the hetero aggregation is did. Defaults to 'sum'.
-            verbose (bool, optional): Verbose. Defaults to False.
         """
         super().__init__()
         first_layer_dict = get_het_conv_first_layer(
             list_hidden_channels_pa[0], list_hidden_channels_la[0], dropout)
         list_other_layer_dict = get_het_conv_layer(
             list_hidden_channels_pa, list_hidden_channels_la, heads, dropout)
-        if verbose:
-            print(first_layer_dict)
-            print('--\n')
-            for dico in list_other_layer_dict:
-                print(dico)
-                print('--\n')
         self.conv_list = torch.nn.ModuleList(
             [HeteroConv(first_layer_dict, aggr=hetero_aggr)])
         self.num_layers = num_layers
@@ -160,7 +152,7 @@ class AFP_Hetero_Molecular(torch.nn.Module):
                  hidden_channels_la: int,
                  out_channels_pa: int,
                  out_channels_la: int,
-                 num_timesteps: int,
+                 molecular_embedding_size: int,
                  dropout: float,
                  heads: int):
         """Construct the molecular embedding part
@@ -170,14 +162,14 @@ class AFP_Hetero_Molecular(torch.nn.Module):
             hidden_channels_la (int): The size of channels for the ligand part
             out_channels_pa (int): The size of output channels for the protein part
             out_channels_la (int): The size of output channels for the ligand part
-            num_timesteps (int): Number of timestep for molecular embedding
+            molecular_embedding_size (int): Number of timestep for molecular embedding
             dropout (float): Dropout rate
             heads (int): Number of heads
         """
         super().__init__()
         self.gcn_pa = self.gcn_la = None
         self.lin_pa = self.lin_la = None
-        self.num_timesteps = num_timesteps
+        self.molecular_embedding_size = molecular_embedding_size
 
         self.gcn_pa = AFP_GATGRUConvMol(
             hidden_channels_pa, hidden_channels_pa, hidden_channels_pa,
@@ -200,7 +192,7 @@ class AFP_Hetero_Molecular(torch.nn.Module):
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: The molecular embedding of (protein, ligand)
         """
-        for _ in range(self.num_timesteps):
+        for _ in range(self.molecular_embedding_size):
             x_dict['pa_embedding'] = self.gcn_pa(x_dict['protein_atoms'],
                                                  x_dict['pa_embedding'],
                                                  edge_index_dict['pa_embedding'])
@@ -212,8 +204,8 @@ class AFP_Hetero_Molecular(torch.nn.Module):
         return y_pa, y_la
 
 
-class BG_LPS(torch.nn.Module):
-    """The Bipartite Graph for Ligand-Protein Scoring network
+class BGCN_4_PLS(torch.nn.Module):
+    """The Bipartite Graph Convolutional neural Network for Protein-Ligand Scoring network
     """
 
     def __init__(self,
@@ -222,10 +214,9 @@ class BG_LPS(torch.nn.Module):
                  num_layers: int,
                  hetero_aggr: str,
                  mlp_channels: List[int],
-                 num_timesteps: int,
+                 molecular_embedding_size: int,
                  dropout: float,
-                 heads: int,
-                 verbose: bool = False):
+                 heads: int):
         """Construct the model
 
         Args:
@@ -234,10 +225,9 @@ class BG_LPS(torch.nn.Module):
             num_layers (int): The number of layers
             hetero_aggr (str): How the hetero aggregation is did
             mlp_channels (List[int]): List of final MLP channels size
-            num_timesteps (int): Number of timestep for molecular embedding
+            molecular_embedding_size (int): Number of timestep for molecular embedding
             dropout (float): Dropout rate
             heads (int): Number of heads
-            verbose (bool, optional): Verbose. Defaults to False.
         """
         super().__init__()
         self.gcn_atm = HeteroAFP_Atomic(
@@ -246,13 +236,12 @@ class BG_LPS(torch.nn.Module):
             num_layers=num_layers,
             dropout=dropout,
             heads=heads,
-            hetero_aggr=hetero_aggr,
-            verbose=verbose)
+            hetero_aggr=hetero_aggr)
         self.gcn_mol = AFP_Hetero_Molecular(hidden_channels_pa=list_hidden_channels_pa[-1],
                                             hidden_channels_la=list_hidden_channels_la[-1],
                                             out_channels_pa=list_hidden_channels_pa[-1],
                                             out_channels_la=list_hidden_channels_la[-1],
-                                            num_timesteps=num_timesteps,
+                                            molecular_embedding_size=molecular_embedding_size,
                                             dropout=dropout,
                                             heads=heads)
 

@@ -1,7 +1,12 @@
+import argparse
+import multiprocessing as mp
 import os.path as osp
+from typing import Union
 
 import pytorch_lightning as pl
 import torch
+import yaml
+from pytorch_lightning.plugins import DDPPlugin
 from pytorch_lightning.utilities import rank_zero_only
 
 import config as cfg
@@ -9,10 +14,19 @@ import data
 import model as md
 
 
-def train():
+def train(atomic_distance_cutoff: float,
+          nb_epochs: int):
+    """Train the model
+
+    Args:
+        atomic_distance_cutoff (float): The cutoff to consider a link between a protein-ligand atom pair
+        nb_epochs (int): The maximum number of epochs 
+    """
     gpus = torch.cuda.device_count()
     use_gpu = gpus > 0
-    strategy = 'ddp' if use_gpu else None
+    accelerator = 'gpu' if use_gpu else None
+    strategy = DDPPlugin(find_unused_parameters=False) if use_gpu else None
+    devices = gpus if gpus > 0 else None
     exp_model_name = 'BG_PLS'
 
     logger = pl.loggers.TensorBoardLogger(
@@ -31,26 +45,28 @@ def train():
     callbacks = [pl.callbacks.LearningRateMonitor(
     ), checkpoint_callback, early_stopping_callback]
 
+    with open(cfg.model_parameters_path, 'r') as f_yaml:
+        model_parameters = yaml.safe_load(f_yaml)
+
     datamodule = data.PDBBindDataModule(root=cfg.data_path,
-                                        atomic_distance_cutoff=cfg.atomic_distance_cutoff,
-                                        batch_size=cfg.batch_size,
-                                        num_workers=cfg.datamodule_num_worker,
-                                        only_pocket=True,
-                                        sample_percent=100.0)
+                                        atomic_distance_cutoff=atomic_distance_cutoff,
+                                        batch_size=model_parameters['batch_size'],
+                                        num_workers=mp.cpu_count(),
+                                        only_pocket=True)
 
     model = md.Model(
-        hidden_channels_pa=cfg.hidden_channels_pa,
-        hidden_channels_la=cfg.hidden_channels_pa,
-        num_layers=cfg.num_layers,
-        dropout=cfg.p_dropout,
-        heads=cfg.heads,
-        hetero_aggr=cfg.hetero_aggr,
-        mlp_channels=cfg.mlp_channels,
-        lr=cfg.learning_rate,
-        weight_decay=cfg.weight_decay,
+        hidden_channels_pa=model_parameters['hidden_channels_pa'],
+        hidden_channels_la=model_parameters['hidden_channels_la'],
+        num_layers=model_parameters['num_layers'],
+        dropout=model_parameters['dropout'],
+        heads=model_parameters['heads'],
+        hetero_aggr=model_parameters['hetero_aggr'],
+        mlp_channels=model_parameters['mlp_channels'],
+        lr=model_parameters['lr'],
+        weight_decay=model_parameters['weight_decay'],
+        molecular_embedding_size=model_parameters['molecular_embedding_size'],
         plot_path=version_path,
-        num_timesteps=cfg.num_timesteps,
-        str_for_hparams="InterMol length: {}A".format(cfg.atomic_distance_cutoff))
+        str_for_hparams="InterMol length: {}A".format(atomic_distance_cutoff))
 
     nb_param_trainable = model.get_nb_parameters(only_trainable=True)
     nb_param = model.get_nb_parameters(only_trainable=False)
@@ -58,21 +74,14 @@ def train():
         {'nb_param_trainable': torch.tensor(nb_param_trainable)})
     logger.log_metrics({'nb_param': torch.tensor(nb_param)})
 
-    if use_gpu:
-        trainer = pl.Trainer(accelerator='gpu',
-                             devices=gpus,
-                             strategy=strategy,
-                             callbacks=callbacks,
-                             max_epochs=cfg.nb_epochs,
-                             logger=logger,
-                             log_every_n_steps=2,
-                             num_sanity_val_steps=0)
-    else:
-        trainer = pl.Trainer(callbacks=callbacks,
-                             max_epochs=cfg.nb_epochs,
-                             logger=logger,
-                             log_every_n_steps=2,
-                             num_sanity_val_steps=0)
+    trainer = pl.Trainer(accelerator=accelerator,
+                         devices=devices,
+                         strategy=strategy,
+                         callbacks=callbacks,
+                         max_epochs=nb_epochs,
+                         logger=logger,
+                         log_every_n_steps=2,
+                         num_sanity_val_steps=0)
 
     trainer.fit(model, datamodule)
 
@@ -85,46 +94,54 @@ def train():
         best_model_path = list_bmp[0]
 
     print("Best Checkpoint path : ", best_model_path)
-    test_best_model_16(best_model_path, datamodule, logger)
+    test_best_model(best_model_path, datamodule, logger, 16,
+                    accelerator=accelerator,
+                    devices=devices,
+                    strategy=strategy)
 
 
 @rank_zero_only
-def test_best_model_13(best_model_path: str,
-                       datamodule: pl.LightningDataModule,
-                       logger):
-    """Test the given model on the dataloader CASF13
+def test_best_model(best_model_path: str,
+                    datamodule: pl.LightningDataModule,
+                    logger: pl.loggers.TensorBoardLogger,
+                    casf_version: Union[int, str],
+                    **kwargs):
+    """Test the given model on the dataloader CASF
 
     Args:
         best_model_path (str): Path to the best checkpoint
         datamodule (pl.LightningDataModule): PL Datamodule
+        logger (pl.loggers.TensorBoardLogger): Tensorboard Logger
+        casf_version (Union[int, str]): The Casf version, must be 13 or 16.
+        **kwargs: Additional arguments of pytorch_lightning.Trainer
     """
-    trainer = pl.Trainer(max_epochs=1,
-                         log_every_n_steps=2,
+    accelerator = kwargs.get('accelerator', None)
+    devices = kwargs.get('devices', None)
+    strategy = kwargs.get('strategy', None)
+    trainer = pl.Trainer(accelerator=accelerator,
+                         devices=devices,
+                         strategy=strategy,
+                         max_epochs=1,
+                         log_every_n_steps=0,
                          num_sanity_val_steps=0,
                          logger=logger)
     trained_model = md.Model.load_from_checkpoint(best_model_path)
-    trained_model.set_casf13_test()
-    trainer.test(trained_model, datamodule.casf_13_dataloader())
-
-
-@rank_zero_only
-def test_best_model_16(best_model_path: str,
-                       datamodule: pl.LightningDataModule,
-                       logger):
-    """Test the given model on the dataloader CASF16
-
-    Args:
-        best_model_path (str): Path to the best checkpoint
-        datamodule (pl.LightningDataModule): PL Datamodule
-    """
-    trainer = pl.Trainer(max_epochs=1,
-                         log_every_n_steps=2,
-                         num_sanity_val_steps=0,
-                         logger=logger)
-    trained_model = md.Model.load_from_checkpoint(best_model_path)
-    trained_model.set_casf16_test()
-    trainer.test(trained_model, datamodule.casf_16_dataloader())
+    trained_model.set_casf_test(casf_version)
+    trainer.test(trained_model, datamodule.casf_dataloader(casf_version))
 
 
 if __name__ == '__main__':
-    train()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-nb_epochs', '-ep',
+                        type=int,
+                        help='The maximum number of epochs ',
+                        default=100)
+    parser.add_argument('-cutoff', '-c',
+                        type=float,
+                        help='The cutoff to consider a link between a protein-ligand atom pair',
+                        default=4.0)
+    args = parser.parse_args()
+    atomic_distance_cutoff = args.cutoff
+    nb_epochs = args.nb_epochs
+    train(atomic_distance_cutoff=atomic_distance_cutoff,
+          nb_epochs=nb_epochs)
