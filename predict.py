@@ -77,7 +77,7 @@ def pocket_extraction(prot_path: str,
             list_df_in_site += [group]
 
     df_site = pd.concat(list_df_in_site).reset_index(drop=True)
-    df_site['atom_number'] = [i for i in range(df_site.shape[0])]
+    df_site['atom_number'] = [i+1 for i in range(df_site.shape[0])]
 
     now = datetime.datetime.now()
     now_str = now.strftime('%Y-%m-%d %H:%M:%S')
@@ -119,7 +119,7 @@ def predict(protein_path: str,
             model_path: str,
             atomic_distance_cutoff: float,
             extract_pocket: bool,
-            pocket_cutoff: float=0.0) -> float:
+            pocket_cutoff: float = 0.0) -> float:
     """Predict the affinity score for a given complex
 
     Args:
@@ -133,7 +133,7 @@ def predict(protein_path: str,
 
     Returns:
         float: The complex's score
-    """    
+    """
     if extract_pocket:
         prot_dir, prot_name = osp.split(protein_path)
         pocket_path = osp.join(prot_dir, "bgpls_pocket_{}".format(prot_name))
