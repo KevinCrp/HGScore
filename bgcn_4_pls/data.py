@@ -1,9 +1,9 @@
 import argparse
-from dataclasses import dataclass, field
 import multiprocessing as mp
 import os
 import os.path as osp
 import re
+from dataclasses import dataclass, field
 from typing import Dict, List, Union
 
 import pandas as pd
@@ -13,8 +13,8 @@ import torch_geometric as pyg
 from biopandas.mol2 import PandasMol2, split_multimol2
 from biopandas.pdb import PandasPdb
 
-import config as cfg
-import featurizer as f_atm
+import bgcn_4_pls.config as cfg
+import bgcn_4_pls.featurizer as f_atm
 
 
 def clean_pdb(pdb_path: str, out_filename: str):
@@ -280,7 +280,7 @@ class PDBBindDataModule(pl.LightningDataModule):
         self.dt_val = PDBBindDataset(
             root=self.root, atomic_distance_cutoff=self.atomic_distance_cutoff,
             stage='val', only_pocket=self.only_pocket)
-        
+
         self.dt_casf_13 = CASFDataset(root=cfg.data_path, year='13',
                                       atomic_distance_cutoff=self.atomic_distance_cutoff,
                                       only_pocket=cfg.data_use_only_pocket)
@@ -336,7 +336,7 @@ def read_decoy_rmsd(path: str) -> pd.DataFrame:
 
     Returns:
         pd.DataFrame: The Dataframe
-    """    
+    """
     lst_for_df = []
     with open(path, 'r') as f:
         for line in f.readlines():
@@ -357,7 +357,7 @@ def clean_backbone_str(lines: List[str]) -> List[str]:
 
     Returns:
         List[str]: The cleaned lines
-    """    
+    """
     for i in range(len(lines)):
         lines[i] = lines[i].replace("BACKBONE\n", '\n')
     return lines
@@ -372,7 +372,7 @@ def split_multi_mol2(mol2_path: str, rmsd_path: str) -> Dict:
 
     Returns:
         Dict: A dictionnary
-    """    
+    """
     mol2_dict = {}
     pdmol = PandasMol2()
     df_rmsd = read_decoy_rmsd(rmsd_path)

@@ -9,8 +9,8 @@ import torch_geometric as pyg
 from biopandas.mol2 import PandasMol2
 from biopandas.pdb import PandasPdb
 
-import model as md
-from data import clean_pdb, create_pyg_graph
+import bgcn_4_pls.model as md
+from bgcn_4_pls.data import clean_pdb, create_pyg_graph
 
 
 def residue_close_to_ligand(ligand_coords: np.ndarray,

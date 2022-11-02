@@ -3,10 +3,9 @@ from typing import List
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import torch
 from sklearn import linear_model
-
-import seaborn as sns
 
 
 def plot_linear_reg(p: torch.Tensor, t: torch.Tensor, pearson_r: float,

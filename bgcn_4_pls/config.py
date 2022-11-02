@@ -2,12 +2,14 @@ import os
 import os.path as osp
 
 root_path = osp.dirname(osp.realpath(__file__))
+root_path = osp.dirname(root_path)
+
 data_use_only_pocket = True
 
-model_parameters_path = 'model_parameters.yaml'
+model_parameters_path = osp.join(root_path, 'model_parameters.yaml')
 data_path = osp.join(root_path, 'data')
 decoy_path = osp.join(data_path, 'decoys_docking')
-# ----------------
+
 index_dir_path = osp.join(data_path, 'index')
 indexes_path = {'general': osp.join(index_dir_path, 'INDEX_general_PL_data.2020'),
                 'refined': osp.join(index_dir_path, 'INDEX_refined_data.2020'),

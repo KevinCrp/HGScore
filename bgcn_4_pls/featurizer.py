@@ -8,7 +8,7 @@ from oddt.spatial import distance
 from oddt.toolkits.ob import Molecule, readfile
 from openbabel import openbabel
 
-from redirect import stderr_redirected
+from bgcn_4_pls.redirect import stderr_redirected
 
 
 def open_pdb(filepath: str, hydrogens_removal: bool = True) -> Molecule:

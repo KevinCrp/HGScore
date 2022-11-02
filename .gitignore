@@ -6,3 +6,5 @@ data/test/*
 data/raw/*
 data/raw
 data/decoys_docking/*
+build/*
+*.egg-info/*

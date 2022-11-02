@@ -4,6 +4,7 @@ from contextlib import contextmanager
 
 # FROM https://stackoverflow.com/questions/6796492/temporarily-redirect-stdout-stderr
 
+
 def fileno(file_or_fd):
     fd = getattr(file_or_fd, 'fileno', lambda: file_or_fd)()
     if not isinstance(fd, int):

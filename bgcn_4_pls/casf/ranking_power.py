@@ -99,5 +99,6 @@ def ranking_power(preds: torch.Tensor,
 
     return spearman_mean, kendall_mean, pi_mean
 
+
 def ranking_power_pt():
     pass
