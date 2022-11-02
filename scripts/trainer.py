@@ -138,11 +138,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-nb_epochs', '-ep',
                         type=int,
-                        help='The maximum number of epochs ',
+                        help='The maximum number of epochs (defaults to 100)',
                         default=100)
     parser.add_argument('-cutoff', '-c',
                         type=float,
-                        help='The cutoff to consider a link between a protein-ligand atom pair',
+                        help='The cutoff to consider a link between a protein-ligand atom pair (defaults to 4.0)',
                         default=4.0)
     parser.add_argument('-data', '-d',
                         type=str,

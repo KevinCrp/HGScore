@@ -95,7 +95,7 @@ if __name__ == '__main__':
                         help='Test on CASF Core set v2016')
     parser.add_argument('-cutoff', '-c',
                         type=float,
-                        help='The cutoff to consider a link between a protein-ligand atom pair',
+                        help='The cutoff to consider a link between a protein-ligand atom pair (defaults to 4.0)',
                         default=4.0)
     parser.add_argument('-docking_power', '-dp',
                         action='store_true',

@@ -11,7 +11,7 @@ if __name__ == '__main__':
     parser.add_argument('-nb_val',
                         type=int,
                         default=1000,
-                        help='Number of items from refined set used for validation')
+                        help='Number of items from refined set used for validation (defaults to 1000)')
                 
     args = parser.parse_args()
 
