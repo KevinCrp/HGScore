@@ -57,6 +57,7 @@ optional arguments:
 python test_model_on_casf.py -ckpt models/model.ckpt -c 4.0 -p -casf_13 -casf_16
 ````
 11. Score a protein-ligand complex with `python predict.py`
+*According to the PDBBind pocket extraction strategy we consider a residue as being part of the binding if at least one residue's heavy atom is close to a cutoff (the cutoff used by PDBBind is 10.0A) of at least one ligand's heavy atom.*
 ````bash
 usage: predict.py [-h] -checkpoint_path CHECKPOINT_PATH -protein_path PROTEIN_PATH -ligand_path LIGAND_PATH [-cutoff CUTOFF] [-extract_pocket]
                   [-extract_pocket_cutoff EXTRACT_POCKET_CUTOFF]
