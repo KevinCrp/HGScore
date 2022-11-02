@@ -2,7 +2,7 @@
 
 ## Installation
 1. Clone this repo
-1. Create a conda environment or a Docker container with provided files
+2. Create a conda environment or a Docker container with provided files. Dockerfile and YAML files are provided in the `./venv` directory
 3. Install with `pip install .`
 
 ## Usage
@@ -74,6 +74,7 @@ optional arguments:
 python scripts/test_model_on_casf.py -ckpt models/model.ckpt -c 4.0 -p -casf_13 -casf_16 -d data -pocket
 ````
 9. Score a protein-ligand complex with `python scripts/predict.py`
+
 *According to the PDBBind pocket extraction strategy we consider a residue as being part of the binding if at least one residue's heavy atom is close to a cutoff (the cutoff used by PDBBind is 10.0A) of at least one ligand's heavy atom.*
 ````bash
 usage: predict.py [-h] -checkpoint_path CHECKPOINT_PATH -protein_path PROTEIN_PATH -ligand_path LIGAND_PATH [-cutoff CUTOFF] [-extract_pocket]
