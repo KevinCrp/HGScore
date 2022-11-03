@@ -1,3 +1,4 @@
+import datetime
 import multiprocessing as mp
 import os
 import os.path as osp
@@ -6,6 +7,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Union
 
+import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import torch
@@ -170,6 +172,83 @@ def clean_pdb(pdb_path: str, out_filename: str):
                 append_newline=True)
 
 
+def residue_close_to_ligand(ligand_coords: np.ndarray,
+                            res_coords: np.ndarray,
+                            cutoff: float) -> bool:
+    """Check if a protein's residue is close to a ligand according to the coordinates.
+        Only heavy atoms are considered
+
+
+    Args:
+        ligand_coords (np.ndarray): The ligand's coordinates
+        res_coords (np.ndarray): The protein's coordinates
+        cutoff (float): Cutoff to consider a residue as close to the ligand
+
+    Returns:
+        bool: Is the residue close to the ligand
+    """
+    for res_coord in res_coords:
+        for lig_coord in ligand_coords:
+            distance = np.linalg.norm(res_coord - lig_coord)
+            if distance <= cutoff:
+                return True
+    return False
+
+
+def pocket_extraction(prot_path: str,
+                      lig_path: str,
+                      pocket_out_path: str,
+                      cutoff: float):
+    """Extract the protein binding pocket
+
+    Args:
+        prot_path (str): Path to the protein PDB
+        lig_path (str): Path to the ligand (PDB or MOL2)
+        pocket_out_path (str): Path where the extracted pocket will be saved
+        cutoff (float): Cutoff to consider a residue as close to the ligand
+    """
+    ppdb_prot = PandasPdb()
+    ppdb_prot.read_pdb(prot_path)
+
+    ppdb_prot.df['ATOM'] = ppdb_prot.df['ATOM'][ppdb_prot.df['ATOM']
+                                                ['element_symbol'] != 'H']
+
+    ligand_filetype = osp.splitext(lig_path)[1].replace('.', '')
+    if ligand_filetype.lower() == 'mol2':
+        pmol2_lig = PandasMol2()
+        pmol2_lig.read_mol2(lig_path)
+        df_atom_lig = pmol2_lig.df[pmol2_lig.df['atom_type'] != 'H']
+        ligand_coords = df_atom_lig[[
+            'x', 'y', 'z']].to_numpy()
+    elif ligand_filetype.lower() == 'pdb':
+        ppdb_lig = PandasPdb()
+        ppdb_lig.read_pdb(lig_path)
+        df_atom_lig = ppdb_lig.df['ATOM'][ppdb_lig.df['ATOM']
+                                          ['element_symbol'] != 'H']
+        ligand_coords = df_atom_lig[[
+            'x_coord', 'y_coord', 'z_coord']].to_numpy()
+
+    df_grouped = ppdb_prot.df['ATOM'].groupby('residue_number')
+    list_df_in_site = []
+    for _, group in df_grouped:
+        res_coords = group[['x_coord', 'y_coord', 'z_coord']].to_numpy()
+        if residue_close_to_ligand(ligand_coords, res_coords, cutoff=cutoff):
+            list_df_in_site += [group]
+
+    df_site = pd.concat(list_df_in_site).reset_index(drop=True)
+    df_site['atom_number'] = [i+1 for i in range(df_site.shape[0])]
+
+    now = datetime.datetime.now()
+    now_str = now.strftime('%Y-%m-%d %H:%M:%S')
+    ppdb_prot.df['OTHERS'].loc[0] = [
+        'REMARK', '    Extracted by K.CRAMPON on {}'.format(now_str), 0]
+
+    ppdb_prot.df['ATOM'] = df_site
+    ppdb_prot.to_pdb(path=pocket_out_path,
+                     records=['OTHERS', 'ATOM'],
+                     append_newline=True)
+
+
 def create_pyg_graph(protein_path: str,
                      ligand_path: str,
                      target: float = None,
@@ -241,18 +320,41 @@ def create_pyg_graph(protein_path: str,
     return data
 
 
+def make_bipartite_graph(protein_path: str,
+                         ligand_path: str,
+                         atomic_distance_cutoff: float) -> pyg.data.HeteroData:
+    """Build a Bipartite Graph from a Protein and a Ligand files
+
+    Args:
+        protein_path (str): Path to the protien PDB
+        ligand_path (str): Path to the ligand MOL2
+        atomic_distance_cutoff (float): The cutoff to consider a link between a protein-ligand atom pair
+
+    Returns:
+        pyg.data.HeteroData: The bipartite graph
+    """
+    protein_dir, protein_name = osp.split(protein_path)
+
+    clean_protein_path = 'clean_' + protein_name
+    clean_protein_path = osp.join(protein_dir, clean_protein_path)
+    if not osp.exists(clean_protein_path):
+        clean_pdb(protein_path, clean_protein_path)
+    bipartite_graph = create_pyg_graph(clean_protein_path, ligand_path,
+                                       cutoff=atomic_distance_cutoff)
+    return bipartite_graph
+
+
 def process_graph(raw_path: str,
-                  processed_filename: str,
                   atomic_distance_cutoff: float,
                   only_pocket: bool = False,
-                  target: float = None, cluster: int = None,
+                  target: float = None,
+                  cluster: int = None,
                   pdb_id: str = None,
                   rmsd: float = 0.0) -> str:
-    """Create a graph from PDBs
+    """Create a graph from PDBBind
 
     Args:
         raw_path (str): Path to the directory containing raw files.
-        processed_filename (str): Path to the processed file.
         atomic_distance_cutoff (float): Cutoff for inter-atomic distance.
         only_pocket (bool, optional): Use only the binding pocket or not. Defaults to False.
         target (float, optional): The target affinity. Defaults to None.
@@ -274,6 +376,39 @@ def process_graph(raw_path: str,
     g = create_pyg_graph(
         protein_path_clean, ligand_path, target, cluster, pdb_id,
         atomic_distance_cutoff, rmsd)
+    return g
+
+
+def process_and_save_graph(raw_path: str,
+                           processed_filename: str,
+                           atomic_distance_cutoff: float,
+                           only_pocket: bool = False,
+                           target: float = None,
+                           cluster: int = None,
+                           pdb_id: str = None,
+                           rmsd: float = 0.0) -> str:
+    """Create a graph from PDBBind and save it in processed_filename
+
+    Args:
+        raw_path (str): Path to the directory containing raw files.
+        processed_filename (str): Path to the processed file.
+        atomic_distance_cutoff (float): Cutoff for inter-atomic distance.
+        only_pocket (bool, optional): Use only the binding pocket or not. Defaults to False.
+        target (float, optional): The target affinity. Defaults to None.
+        cluster (int, optional): Cluster ID for ranking. Defaults to None.
+        pdb_id (int, optional): PDB ID for casf output. Defaults to None.
+        rmsd (float, optional): Used for docking power. Defaults to 0.0.
+
+    Returns:
+        str: Path where the graph is saved
+    """
+    g = process_graph(raw_path,
+                      atomic_distance_cutoff,
+                      only_pocket,
+                      target,
+                      cluster,
+                      pdb_id,
+                      rmsd)
     torch.save(g, processed_filename)
     return processed_filename
 
@@ -324,7 +459,7 @@ class PDBBindDataset(pyg.data.InMemoryDataset):
                              self.df.loc[pdb_id]['target']))
             i += 1
         pool = mp.Pool(mp.cpu_count())
-        data_path_list = list(pool.starmap(process_graph, pool_args))
+        data_path_list = list(pool.starmap(process_and_save_graph, pool_args))
         data_list = []
         for p in data_path_list:
             data_list.append(torch.load(p))
@@ -381,7 +516,7 @@ class CASFDataset(pyg.data.InMemoryDataset):
                              pdb_id))
             i += 1
         pool = mp.Pool(mp.cpu_count())
-        data_path_list = list(pool.starmap(process_graph, pool_args))
+        data_path_list = list(pool.starmap(process_and_save_graph, pool_args))
         data_list = []
         for p in data_path_list:
             data_list.append(torch.load(p))
