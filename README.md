@@ -50,9 +50,9 @@ optional arguments:
 ````bash
 tensorboard --logdir experiments/BG_PLS
 ````
-8. ReTest a trained model on CASF 13 & 16 with `python scripts/test_model_on_casf.py`
+8. ReTest a trained model on CASF 13 & 16 with `python scripts/assess_model_on_casf.py`
 ````bash
-usage: test_model_on_casf.py [-h] -checkpoint_path CHECKPOINT_PATH [-plot] [-casf_13] [-casf_16] [-cutoff CUTOFF] [-docking_power]
+usage: assess_model_on_casf.py [-h] -checkpoint_path CHECKPOINT_PATH [-plot] [-casf_13] [-casf_16] [-cutoff CUTOFF] [-docking_power]
                              [-docking_power_cutoff DOCKING_POWER_CUTOFF] [-pocket] -data DATA
 
 optional arguments:
@@ -71,7 +71,7 @@ optional arguments:
   -data DATA, -d DATA   Path to the data directory
 ````
 ````bash
-python scripts/test_model_on_casf.py -ckpt models/model.ckpt -c 4.0 -p -casf_13 -casf_16 -d data -pocket
+python scripts/assess_model_on_casf.py -ckpt models/model.ckpt -c 4.0 -p -casf_13 -casf_16 -d data -pocket
 ````
 9. Score a protein-ligand complex with `python scripts/predict.py`
 
