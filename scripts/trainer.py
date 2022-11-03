@@ -27,7 +27,7 @@ def train(atomic_distance_cutoff: float,
     accelerator = 'gpu' if use_gpu else None
     strategy = DDPPlugin(find_unused_parameters=False) if use_gpu else None
     devices = gpus if gpus > 0 else None
-    exp_model_name = 'BG_PLS'
+    exp_model_name = 'BGCN_4_PLS'
     experiments_path = osp.join('.', 'experiments')
 
     if not osp.isdir(experiments_path):

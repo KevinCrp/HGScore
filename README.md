@@ -48,7 +48,7 @@ optional arguments:
 6. Results will be saved in *experiments/BG_PLS/version_X*
 7. Access them with 
 ````bash
-tensorboard --logdir experiments/BG_PLS
+tensorboard --logdir experiments/BGCN_4_PLS
 ````
 8. ReTest a trained model on CASF 13 & 16 with `python scripts/assess_model_on_casf.py`
 ````bash
