@@ -1,11 +1,20 @@
 # Bipartite Graph Convolutional Network for Protein-Ligand Scoring
 
-## Installation
+#### Compatibility
+| **BGCN_4_PLS**    | **v1.0** | **v1.1** |
+|-------------------|:--------:|:--------:|
+| Python            | 3.7; 3.8 |      3.8 |
+| CudaToolKit       |     11.3 |     11.3 |
+| PyTorch           |   10.0.0 |   11.0.0 |
+| PyTorch Lightning |    1.5.9 |    1.7.7 |
+| PyTorch Geometric |    2.0.4 |    2.1.0 |
+
+#### Installation
 1. Clone this repo
 2. Create a conda environment or a Docker container with provided files. Dockerfile and YAML files are provided in the `./venv` directory
 3. Install with `pip install .`
 
-## Usage
+#### Usage
 
 1. Download the PDBBind database from http://www.pdbbind.org.cn/ with `scripts/download_pdbbind.sh`. Extracted PDBBind complexes are stored in *data/raw/*
 You can also download the power_docking dataset for CASF's power docking assesment with `scripts/download_docking_power.sh`.
