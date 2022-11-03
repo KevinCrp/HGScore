@@ -5,8 +5,9 @@ import sys
 import torch_geometric as pyg
 
 import bgcn_4_pls.model as md
-from bgcn_4_pls.data import make_bipartite_graph
+from bgcn_4_pls.data import process_graph_from_files
 from bgcn_4_pls.utilities.pockets import pocket_extraction
+
 
 def predict(protein_path: str,
             ligand_path: str,
@@ -42,9 +43,9 @@ def predict(protein_path: str,
     if not osp.exists(ligand_path):
         print('Error {} not found'.format(ligand_path))
 
-    bipartite_graph = make_bipartite_graph(protein_path,
-                                           ligand_path,
-                                           atomic_distance_cutoff=atomic_distance_cutoff)
+    bipartite_graph = process_graph_from_files(protein_path,
+                                               ligand_path,
+                                               atomic_distance_cutoff=atomic_distance_cutoff)
     batch = pyg.data.Batch.from_data_list([bipartite_graph])
 
     model = md.Model.load_from_checkpoint(model_path)

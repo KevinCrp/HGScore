@@ -8,7 +8,6 @@ import torch
 import torch_geometric as pyg
 import tqdm
 
-import bgcn_4_pls.config as cfg
 import bgcn_4_pls.data as data
 import bgcn_4_pls.model as md
 import bgcn_4_pls.plotters as plotters

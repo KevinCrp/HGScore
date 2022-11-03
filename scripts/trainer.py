@@ -4,18 +4,19 @@ import os
 import os.path as osp
 from typing import Union
 
-import bgcn_4_pls.data as data
-import bgcn_4_pls.model as md
 import pytorch_lightning as pl
 import torch
 import yaml
 from pytorch_lightning.plugins import DDPPlugin
 from pytorch_lightning.utilities import rank_zero_only
 
+import bgcn_4_pls.data as data
+import bgcn_4_pls.model as md
+
 
 def train(atomic_distance_cutoff: float,
           nb_epochs: int, data_path: str,
-          model_parameters_path:str):
+          model_parameters_path: str):
     """Train the model
 
     Args:
@@ -152,7 +153,7 @@ if __name__ == '__main__':
                         type=str,
                         required=True,
                         help='Path to the yaml model parameters')
-                
+
     args = parser.parse_args()
     atomic_distance_cutoff = args.cutoff
     nb_epochs = args.nb_epochs

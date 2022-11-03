@@ -31,6 +31,67 @@ def clean_pdb(pdb_path: str, out_filename: str):
                 append_newline=True)
 
 
+def read_decoy_rmsd(path: str) -> pd.DataFrame:
+    """Load the docking power decoys' rmsd into a Dataframe
+
+    Args:
+        path (str): Path to the csv containing the docking power decoys' rmsd
+
+    Returns:
+        pd.DataFrame: The Dataframe
+    """
+    lst_for_df = []
+    with open(path, 'r') as f:
+        for line in f.readlines():
+            line = line.replace('\n', '')
+            find = re.search("^#", line)
+            if find is None:
+                line_tab = line.split()
+                lst_for_df.append(line_tab)
+    df = pd.DataFrame(lst_for_df, columns=['#code', 'rmsd'])
+    return df
+
+
+def clean_backbone_str(lines: List[str]) -> List[str]:
+    """Clear the MOL2 ATOM lines by removing "BACKBONE" at the end of the lines
+
+    Args:
+        lines (List[str]): The MOL2 ATOM lines
+
+    Returns:
+        List[str]: The cleaned lines
+    """
+    for i in range(len(lines)):
+        lines[i] = lines[i].replace("BACKBONE\n", '\n')
+    return lines
+
+
+def split_multi_mol2(mol2_path: str, rmsd_path: str) -> Dict:
+    """For a given docking power complex, split into a Dict all decoys
+
+    Args:
+        mol2_path (str): Path to the decoys mol2 file
+        rmsd_path (str): Path to the decoys rmsd file
+
+    Returns:
+        Dict: A dictionnary
+    """
+    mol2_dict = {}
+    pdmol = PandasMol2()
+    df_rmsd = read_decoy_rmsd(rmsd_path)
+    filepath, filename = osp.split(mol2_path)
+    for mol2 in split_multimol2(mol2_path):
+        mol2[1] = clean_backbone_str(mol2[1])
+        pdmol.read_mol2_from_list(mol2_lines=mol2[1], mol2_code=mol2[0])
+        decoy_path = osp.join(filepath, "{}.mol2".format(pdmol.code))
+        rmsd = df_rmsd.loc[df_rmsd['#code'] == pdmol.code]['rmsd']
+        mol2_dict[pdmol.code] = (decoy_path, float(rmsd.item()))
+        if not osp.isfile(decoy_path):
+            with open(decoy_path, 'w') as f_decoy:
+                f_decoy.write(pdmol.mol2_text)
+    return mol2_dict
+
+
 def create_pyg_graph(protein_path: str,
                      ligand_path: str,
                      target: float = None,
@@ -44,7 +105,7 @@ def create_pyg_graph(protein_path: str,
 
     Args:
         protein_path (str): Path to the protein file (PDB)
-        ligand_path (str): Path to the liagnd file (MOL2)
+        ligand_path (str): Path to the liagnd file (MOL2/PDB)
         target (float, optional): Affinity target. Defaults to None.
         cluster (int, optional): Cluster ID for ranking. Defaults to None.
         pdb_id (int, optional): PDB ID for casf output. Defaults to None.
@@ -102,15 +163,25 @@ def create_pyg_graph(protein_path: str,
     return data
 
 
-def make_bipartite_graph(protein_path: str,
-                         ligand_path: str,
-                         atomic_distance_cutoff: float) -> pyg.data.HeteroData:
-    """Build a Bipartite Graph from a Protein and a Ligand files
+def process_graph_from_files(protein_path: str,
+                             ligand_path: str,
+                             atomic_distance_cutoff: float,
+                             target: float = None,
+                             cluster: int = None,
+                             pdb_id: str = None,
+                             rmsd: float = 0.0,
+                             decoy_id: str = None) -> pyg.data.HeteroData:
+    """Build a Bipartite Graph from a protein (whole or pocket) and a ligand files
 
     Args:
-        protein_path (str): Path to the protien PDB
-        ligand_path (str): Path to the ligand MOL2
+        protein_path (str): Path to the protien PDB (or the pocket)
+        ligand_path (str): Path to the ligand MOL2/PDB
         atomic_distance_cutoff (float): The cutoff to consider a link between a protein-ligand atom pair
+        target (float, optional): The target affinity. Defaults to None.
+        cluster (int, optional): Cluster ID for ranking. Defaults to None.
+        pdb_id (int, optional): PDB ID for casf output. Defaults to None.
+        rmsd (float, optional): Used for docking power. Defaults to 0.0.
+        decoy_id (str, optional): Contains the ligand id for docking power. Defaults to None.
 
     Returns:
         pyg.data.HeteroData: The bipartite graph
@@ -121,76 +192,124 @@ def make_bipartite_graph(protein_path: str,
     clean_protein_path = osp.join(protein_dir, clean_protein_path)
     if not osp.exists(clean_protein_path):
         clean_pdb(protein_path, clean_protein_path)
-    bipartite_graph = create_pyg_graph(clean_protein_path, ligand_path,
-                                       cutoff=atomic_distance_cutoff)
-    return bipartite_graph
-
-
-def process_graph(raw_path: str,
-                  atomic_distance_cutoff: float,
-                  only_pocket: bool = False,
-                  target: float = None,
-                  cluster: int = None,
-                  pdb_id: str = None,
-                  rmsd: float = 0.0) -> str:
-    """Create a graph from PDBBind
-
-    Args:
-        raw_path (str): Path to the directory containing raw files.
-        atomic_distance_cutoff (float): Cutoff for inter-atomic distance.
-        only_pocket (bool, optional): Use only the binding pocket or not. Defaults to False.
-        target (float, optional): The target affinity. Defaults to None.
-        cluster (int, optional): Cluster ID for ranking. Defaults to None.
-        pdb_id (int, optional): PDB ID for casf output. Defaults to None.
-        rmsd (float, optional): Used for docking power. Defaults to 0.0.
-
-    Returns:
-        str: Path where the graph is saved
-    """
-    pdb_id = raw_path.split('/')[-1]
-    protein_path = osp.join(
-        raw_path, pdb_id + '_pocket.pdb') if only_pocket else osp.join(raw_path, pdb_id + '_protein.pdb')
-    protein_path_clean = osp.join(
-        raw_path, pdb_id + '_pocket_clean.pdb') if only_pocket else osp.join(raw_path, pdb_id + '_protein_clean.pdb')
-    ligand_path = osp.join(raw_path, pdb_id + '_ligand.mol2')
-    if not osp.isfile(protein_path_clean):
-        clean_pdb(protein_path, protein_path_clean)
-    g = create_pyg_graph(
-        protein_path_clean, ligand_path, target, cluster, pdb_id,
-        atomic_distance_cutoff, rmsd)
+    g = create_pyg_graph(clean_protein_path,
+                         ligand_path,
+                         target,
+                         cluster, pdb_id,
+                         atomic_distance_cutoff,
+                         rmsd,
+                         decoy_id)
     return g
 
 
-def process_and_save_graph(raw_path: str,
-                           processed_filename: str,
+def process_graph_from_dir(dir_path: str,
                            atomic_distance_cutoff: float,
                            only_pocket: bool = False,
                            target: float = None,
                            cluster: int = None,
                            pdb_id: str = None,
-                           rmsd: float = 0.0) -> str:
-    """Create a graph from PDBBind and save it in processed_filename
+                           rmsd: float = 0.0,
+                           decoy_id: str = None) -> str:
+    """Create a graph from PDBBind
 
     Args:
-        raw_path (str): Path to the directory containing raw files.
-        processed_filename (str): Path to the processed file.
+        dir_path (str): Path to the directory containing raw files (protein/pocket and ligand).
         atomic_distance_cutoff (float): Cutoff for inter-atomic distance.
         only_pocket (bool, optional): Use only the binding pocket or not. Defaults to False.
         target (float, optional): The target affinity. Defaults to None.
         cluster (int, optional): Cluster ID for ranking. Defaults to None.
         pdb_id (int, optional): PDB ID for casf output. Defaults to None.
         rmsd (float, optional): Used for docking power. Defaults to 0.0.
+        decoy_id (str, optional): Contains the ligand id for docking power. Defaults to None.
 
     Returns:
         str: Path where the graph is saved
     """
-    g = process_graph(raw_path,
-                      atomic_distance_cutoff,
-                      only_pocket,
-                      target,
-                      cluster,
-                      pdb_id,
-                      rmsd)
+    pdb_id = dir_path.split('/')[-1]
+    protein_path = osp.join(
+        dir_path, pdb_id + '_pocket.pdb') if only_pocket else osp.join(dir_path, pdb_id + '_protein.pdb')
+    ligand_path = osp.join(dir_path, pdb_id + '_ligand.mol2')
+    g = process_graph_from_files(protein_path,
+                                 ligand_path,
+                                 atomic_distance_cutoff,
+                                 target,
+                                 cluster,
+                                 pdb_id,
+                                 rmsd,
+                                 decoy_id)
+    return g
+
+
+def process_and_save_graph_from_files(protein_path: str,
+                                      ligand_path: str,
+                                      processed_filename: str,
+                                      atomic_distance_cutoff: float,
+                                      target: float = None,
+                                      cluster: int = None,
+                                      pdb_id: str = None,
+                                      rmsd: float = 0.0,
+                                      decoy_id: str = None) -> str:
+    """Create a graph from PDBBind and save it in processed_filename
+
+    Args:
+        processed_filename (str): Path to the processed file.
+        atomic_distance_cutoff (float): Cutoff for inter-atomic distance.
+        dir_path (str, optional): Path to the directory containing raw files. Defaults to None.
+        target (float, optional): The target affinity. Defaults to None.
+        cluster (int, optional): Cluster ID for ranking. Defaults to None.
+        pdb_id (int, optional): PDB ID for casf output. Defaults to None.
+        rmsd (float, optional): Used for docking power. Defaults to 0.0.
+        decoy_id (str, optional): Contains the ligand id for docking power. Defaults to None.
+
+    Returns:
+        str: Path where the graph is saved
+    """
+    g = process_graph_from_files(protein_path,
+                                 ligand_path,
+                                 atomic_distance_cutoff,
+                                 target,
+                                 cluster,
+                                 pdb_id,
+                                 rmsd,
+                                 decoy_id)
+    torch.save(g, processed_filename)
+    return processed_filename
+
+
+def process_and_save_graph_from_dir(dir_path: str,
+                                    processed_filename: str,
+                                    atomic_distance_cutoff: float,
+                                    only_pocket: bool = False,
+                                    target: float = None,
+                                    cluster: int = None,
+                                    pdb_id: str = None,
+                                    rmsd: float = 0.0,
+                                    decoy_id: str = None) -> str:
+    """Create a graph from PDBBind and save it in processed_filename
+
+    Args:
+        processed_filename (str): Path to the processed file.
+        atomic_distance_cutoff (float): Cutoff for inter-atomic distance.
+        dir_path (str, optional): Path to the directory containing raw files. Defaults to None.
+        only_pocket (bool, optional): Use only the binding pocket or not. Defaults to False.
+        target (float, optional): The target affinity. Defaults to None.
+        cluster (int, optional): Cluster ID for ranking. Defaults to None.
+        pdb_id (int, optional): PDB ID for casf output. Defaults to None.
+        rmsd (float, optional): Used for docking power. Defaults to 0.0.
+        decoy_id (str, optional): Contains the ligand id for docking power. Defaults to None.
+
+    Returns:
+        str: Path where the graph is saved
+    """
+
+    g = process_graph_from_dir(dir_path,
+                               atomic_distance_cutoff,
+                               only_pocket,
+                               target,
+                               cluster,
+                               pdb_id,
+                               rmsd,
+                               decoy_id)
     torch.save(g, processed_filename)
     return processed_filename
 
@@ -241,7 +360,8 @@ class PDBBindDataset(pyg.data.InMemoryDataset):
                              self.df.loc[pdb_id]['target']))
             i += 1
         pool = mp.Pool(mp.cpu_count())
-        data_path_list = list(pool.starmap(process_and_save_graph, pool_args))
+        data_path_list = list(pool.starmap(
+            process_and_save_graph_from_dir, pool_args))
         data_list = []
         for p in data_path_list:
             data_list.append(torch.load(p))
@@ -298,7 +418,92 @@ class CASFDataset(pyg.data.InMemoryDataset):
                              pdb_id))
             i += 1
         pool = mp.Pool(mp.cpu_count())
-        data_path_list = list(pool.starmap(process_and_save_graph, pool_args))
+        data_path_list = list(pool.starmap(
+            process_and_save_graph_from_dir, pool_args))
+        data_list = []
+        for p in data_path_list:
+            data_list.append(torch.load(p))
+            os.remove(p)
+        data, slices = self.collate(data_list)
+        torch.save((data, slices), self.processed_paths[0])
+
+
+@dataclass
+class DockingPower_Dataset(pyg.data.InMemoryDataset):
+    """Torch Geometric Dataset, used for Docking Power
+    """
+
+    root: str  # The data directory
+    year: str  # The CASF year version
+    atomic_distance_cutoff: float  # Cutoff for inter-atomic distance.
+    # Use only the binding pocket or not. Defaults to False.
+    only_pocket: bool = field(default=False)
+
+    def __post_init__(self):
+        self.prefix = 'pocket' if self.only_pocket else 'protein'
+        self.decoy_path = osp.join(self.root, 'decoys_docking')
+        self.df = pd.read_csv(
+            osp.join(self.root, 'casf{}.csv'.format(self.year))).set_index('pdb_id')
+        super().__init__(self.root)
+        self.data, self.slices = torch.load(self.processed_paths[0])
+
+    @property
+    def raw_file_names(self):
+        filename_list = []
+        for pdb_id in self.df.index:
+            filename_list.append(pdb_id)
+        return filename_list
+
+    @property
+    def processed_file_names(self):
+        return ['{}_{}_dockingP.pt'.format(self.prefix,
+                                           self.atomic_distance_cutoff)]
+
+    def process(self):
+        i = 0
+        print('\tDocking Power ', self.year)
+        pool_args = []
+        nb_pdb = 0
+        for raw_path in self.raw_paths:
+            nb_pdb += 1
+            pdb_id = raw_path.split('/')[-1]
+            decoys_mol2 = osp.join(
+                self.decoy_path, "{}_decoys.mol2".format(pdb_id))
+            decoys_rmsd = osp.join(
+                self.decoy_path, "{}_rmsd.dat".format(pdb_id))
+            mol2_dict = split_multi_mol2(decoys_mol2, decoys_rmsd)
+            filename = osp.join(self.processed_dir,
+                                'TMP_DP_{}{}_data_{}.pt'.format(self.prefix,
+                                                                self.year, i))
+            protein_path = osp.join(
+                raw_path, pdb_id + '_pocket.pdb') if self.only_pocket else osp.join(raw_path, pdb_id + '_protein.pdb')
+            ligand_path = osp.join(raw_path, "{}_ligand.mol2".format(pdb_id))
+            pool_args.append((protein_path,
+                              ligand_path,
+                              filename,
+                              self.atomic_distance_cutoff,
+                              self.only_pocket,
+                              pdb_id,
+                              0.0,
+                              '{}_ligand'.format(pdb_id)))
+            i += 1
+            for key in mol2_dict.keys():
+                filename = osp.join(self.processed_dir,
+                                    'TMP_DP_{}{}_data_{}.pt'.format(self.prefix,
+                                                                    self.year,
+                                                                    i))
+                pool_args.append((protein_path,
+                                  mol2_dict[key][0],
+                                  filename,
+                                  self.atomic_distance_cutoff,
+                                  self.only_pocket,
+                                  pdb_id,
+                                  mol2_dict[key][1],
+                                  key))
+                i += 1
+        pool = mp.Pool(mp.cpu_count())
+        data_path_list = list(pool.starmap(process_and_save_graph_from_files,
+                                           pool_args))
         data_list = []
         for p in data_path_list:
             data_list.append(torch.load(p))
@@ -380,180 +585,6 @@ class PDBBindDataModule(pl.LightningDataModule):
                                      batch_size=1,
                                      num_workers=self.num_workers,
                                      persistent_workers=self.persistent_workers)
-
-
-def read_decoy_rmsd(path: str) -> pd.DataFrame:
-    """Load the docking power decoys' rmsd into a Dataframe
-
-    Args:
-        path (str): Path to the csv containing the docking power decoys' rmsd
-
-    Returns:
-        pd.DataFrame: The Dataframe
-    """
-    lst_for_df = []
-    with open(path, 'r') as f:
-        for line in f.readlines():
-            line = line.replace('\n', '')
-            find = re.search("^#", line)
-            if find is None:
-                line_tab = line.split()
-                lst_for_df.append(line_tab)
-    df = pd.DataFrame(lst_for_df, columns=['#code', 'rmsd'])
-    return df
-
-
-def clean_backbone_str(lines: List[str]) -> List[str]:
-    """Clear the MOL2 ATOM lines by removing "BACKBONE" at the end of the lines
-
-    Args:
-        lines (List[str]): The MOL2 ATOM lines
-
-    Returns:
-        List[str]: The cleaned lines
-    """
-    for i in range(len(lines)):
-        lines[i] = lines[i].replace("BACKBONE\n", '\n')
-    return lines
-
-
-def split_multi_mol2(mol2_path: str, rmsd_path: str) -> Dict:
-    """For a given docking power complex, split into a Dict all decoys
-
-    Args:
-        mol2_path (str): Path to the decoys mol2 file
-        rmsd_path (str): Path to the decoys rmsd file
-
-    Returns:
-        Dict: A dictionnary
-    """
-    mol2_dict = {}
-    pdmol = PandasMol2()
-    df_rmsd = read_decoy_rmsd(rmsd_path)
-    filepath, filename = osp.split(mol2_path)
-    for mol2 in split_multimol2(mol2_path):
-        mol2[1] = clean_backbone_str(mol2[1])
-        pdmol.read_mol2_from_list(mol2_lines=mol2[1], mol2_code=mol2[0])
-        decoy_path = osp.join(filepath, "{}.mol2".format(pdmol.code))
-        rmsd = df_rmsd.loc[df_rmsd['#code'] == pdmol.code]['rmsd']
-        mol2_dict[pdmol.code] = (decoy_path, float(rmsd.item()))
-        if not osp.isfile(decoy_path):
-            with open(decoy_path, 'w') as f_decoy:
-                f_decoy.write(pdmol.mol2_text)
-    return mol2_dict
-
-
-def process_graph_for_docking_power(raw_path_protein: str,
-                                    raw_path_ligand: str,
-                                    processed_filename: str,
-                                    atomic_distance_cutoff: float,
-                                    only_pocket: bool = False,
-                                    pdb_id: str = None,
-                                    rmsd: float = 0.0,
-                                    decoy_id: str = None) -> str:
-    """Create a graph from PDBs
-
-    Args:
-        raw_path_protein (str): Path to the protein file (PDB), without ext
-        raw_path_ligand (str): Path to the lgand file (MOL2).
-        processed_filename (str): Path to the processed file.
-        atomic_distance_cutoff (float): Cutoff for inter-atomic distance.
-        only_pocket (bool, optional): Use only the binding pocket or not. Defaults to False.
-        pdb_id (int, optional): PDB ID for casf output. Defaults to None.
-        rmsd (float, optional): Used for docking power. Defaults to 0.0.
-        decoy_id (str, optional): Contains the ligand id for docking power. Defaults to None.
-
-    Returns:
-        str: Path where the graph is saved
-    """
-    protein_path = osp.join(
-        raw_path_protein, pdb_id + '_pocket.pdb') if only_pocket else osp.join(raw_path_protein, pdb_id + '_protein.pdb')
-    protein_path_clean = osp.join(
-        raw_path_protein, pdb_id + '_pocket_clean.pdb') if only_pocket else osp.join(raw_path_protein, pdb_id + '_protein_clean.pdb')
-    if not osp.isfile(protein_path_clean):
-        clean_pdb(protein_path, protein_path_clean)
-    g = create_pyg_graph(protein_path=protein_path_clean,
-                         ligand_path=raw_path_ligand,
-                         pdb_id=pdb_id,
-                         cutoff=atomic_distance_cutoff,
-                         rmsd=rmsd,
-                         decoy_id=decoy_id)
-    torch.save(g, processed_filename)
-    return processed_filename
-
-
-@dataclass
-class DockingPower_Dataset(pyg.data.InMemoryDataset):
-    """Torch Geometric Dataset, used for Docking Power
-    """
-
-    root: str  # The data directory
-    year: str  # The CASF year version
-    atomic_distance_cutoff: float  # Cutoff for inter-atomic distance.
-    # Use only the binding pocket or not. Defaults to False.
-    only_pocket: bool = field(default=False)
-
-    def __post_init__(self):
-        self.prefix = 'pocket' if self.only_pocket else 'protein'
-        self.decoy_path = osp.join(self.root, 'decoys_docking')
-        self.df = pd.read_csv(
-            osp.join(self.root, 'casf{}.csv'.format(self.year))).set_index('pdb_id')
-        super().__init__(self.root)
-        self.data, self.slices = torch.load(self.processed_paths[0])
-
-    @property
-    def raw_file_names(self):
-        filename_list = []
-        for pdb_id in self.df.index:
-            filename_list.append(pdb_id)
-        return filename_list
-
-    @property
-    def processed_file_names(self):
-        return ['{}_{}_dockingP.pt'.format(self.prefix,
-                                           self.atomic_distance_cutoff)]
-
-    def process(self):
-        i = 0
-        print('\tDocking Power ', self.year)
-        pool_args = []
-        nb_pdb = 0
-        for raw_path in self.raw_paths:
-            nb_pdb += 1
-            pdb_id = raw_path.split('/')[-1]
-            decoys_mol2 = osp.join(
-                self.decoy_path, "{}_decoys.mol2".format(pdb_id))
-            decoys_rmsd = osp.join(
-                self.decoy_path, "{}_rmsd.dat".format(pdb_id))
-            mol2_dict = split_multi_mol2(decoys_mol2, decoys_rmsd)
-            filename = osp.join(self.processed_dir,
-                                'TMP_DP_{}{}_data_{}.pt'.format(self.prefix,
-                                                                self.year, i))
-            ligand_path = osp.join(raw_path, "{}_ligand.mol2".format(pdb_id))
-            pool_args.append((raw_path, ligand_path, filename,
-                              self.atomic_distance_cutoff,
-                              self.only_pocket,
-                              pdb_id, 0.0, '{}_ligand'.format(pdb_id)))
-            i += 1
-            for key in mol2_dict.keys():
-                filename = osp.join(self.processed_dir,
-                                    'TMP_DP_{}{}_data_{}.pt'.format(self.prefix,
-                                                                    self.year,
-                                                                    i))
-                pool_args.append((raw_path, mol2_dict[key][0],
-                                  filename, self.atomic_distance_cutoff,
-                                  self.only_pocket,
-                                  pdb_id, mol2_dict[key][1], key))
-                i += 1
-        pool = mp.Pool(mp.cpu_count())
-        data_path_list = list(pool.starmap(process_graph_for_docking_power,
-                                           pool_args))
-        data_list = []
-        for p in data_path_list:
-            data_list.append(torch.load(p))
-            os.remove(p)
-        data, slices = self.collate(data_list)
-        torch.save((data, slices), self.processed_paths[0])
 
 
 @dataclass
