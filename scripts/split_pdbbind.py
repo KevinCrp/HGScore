@@ -1,6 +1,6 @@
 import argparse
 
-from bgcn_4_pls.data import split
+from bgcn_4_pls.utilities.scpdb_split import split
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
