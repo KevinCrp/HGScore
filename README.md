@@ -45,7 +45,7 @@ optional arguments:
   -model_parameters_path MODEL_PARAMETERS_PATH, -mparam MODEL_PARAMETERS_PATH
                         Path to the yaml model parameters
 ````
-6. Results will be saved in *experiments/BG_PLS/version_X*
+6. Results will be saved in *experiments/BGCN_4_PLS/version_X*
 7. Access them with 
 ````bash
 tensorboard --logdir experiments/BGCN_4_PLS
