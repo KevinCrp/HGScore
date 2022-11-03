@@ -57,7 +57,6 @@ def save_predictions(pdb_id: List, preds: torch.Tensor, filepath: str):
 
 def plot_docking_power_curve(tops_label, tops, filepath: str):
     nb_top = len(tops_label)
-    print(tops_label, tops, nb_top)
     fig, ax = plt.subplots()
     ax.plot(tops_label, tops, color='blue', alpha=1.00)
     ax.set_xlabel('Top')
