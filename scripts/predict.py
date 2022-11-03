@@ -5,8 +5,8 @@ import sys
 import torch_geometric as pyg
 
 import bgcn_4_pls.model as md
-from bgcn_4_pls.data import make_bipartite_graph, pocket_extraction
-
+from bgcn_4_pls.data import make_bipartite_graph
+from bgcn_4_pls.utilities.pockets import pocket_extraction
 
 def predict(protein_path: str,
             ligand_path: str,
