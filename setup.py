@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='bgcn_4_pls',
-    version='1.0',
+    version='1.1',
     description='A BiPartite Graph Convolutional Neural Network to score a protein-ligand complex.',
     author='Kevin Crampon',
     author_email='kevin.crampon@univ-reims.fr',
