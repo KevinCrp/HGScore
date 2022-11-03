@@ -64,7 +64,8 @@ def predict_on_CASF(model: torch.nn.Module, dataloader: pyg.loader.DataLoader,
 def docking_power(model: torch.nn.Module,
                   dataloader: pyg.loader.DataLoader,
                   rmsd_cutoff: float,
-                  plot_path: str):
+                  do_plot: bool = False,
+                  plot_path: str = 'plot.png'):
     preds = []
     rmsd = []
     pdb_id = []
@@ -77,9 +78,11 @@ def docking_power(model: torch.nn.Module,
     zipped_list = list(zip(pdb_id, decoy_id, rmsd, preds))
     df = pd.DataFrame(zipped_list,
                       columns=['pdb_id', '#code', 'rmsd', 'score'])
-    return docking_power_df(docking_power_df=df,
-                            rmsd_cutoff=rmsd_cutoff,
-                            plot_path=plot_path)
+    res_dict, tops_label, tops = docking_power_df(docking_power_df=df,
+                                                  rmsd_cutoff=rmsd_cutoff)
+    if do_plot:
+        plotters.plot_docking_power_curve(tops_label, tops, plot_path)
+    return res_dict
 
 
 if __name__ == '__main__':
@@ -177,6 +180,7 @@ if __name__ == '__main__':
             docking_power_res_dict = docking_power(model=model,
                                                    dataloader=dl_docking_power,
                                                    rmsd_cutoff=args.docking_power_cutoff,
+                                                   do_plot=args.plot,
                                                    plot_path=docking_power_plot_path)
 
         print("\tScoring Power:")
