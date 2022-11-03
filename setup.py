@@ -7,7 +7,10 @@ setup(
     author='Kevin Crampon',
     author_email='kevin.crampon@univ-reims.fr',
     url='https://github.com/KevinCrp/BGCN_4_PLS',
-    packages=find_packages(include=["bgcn_4_pls", "bgcn_4_pls.casf", "bgcn_4_pls.layers", "bgcn_4_pls.networks"]),
+    packages=find_packages(include=["bgcn_4_pls",
+                                    "bgcn_4_pls.casf",
+                                    "bgcn_4_pls.layers",
+                                    "bgcn_4_pls.networks",
+                                    "bgcn_4_pls.utilities"]),
     install_requires=[],
 )
-
