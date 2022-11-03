@@ -252,9 +252,10 @@ def process_and_save_graph_from_files(protein_path: str,
     """Create a graph from PDBBind and save it in processed_filename
 
     Args:
+        protein_path (str): Path to the protien PDB (or the pocket)
+        ligand_path (str): Path to the ligand MOL2/PDB
         processed_filename (str): Path to the processed file.
         atomic_distance_cutoff (float): Cutoff for inter-atomic distance.
-        dir_path (str, optional): Path to the directory containing raw files. Defaults to None.
         target (float, optional): The target affinity. Defaults to None.
         cluster (int, optional): Cluster ID for ranking. Defaults to None.
         pdb_id (int, optional): PDB ID for casf output. Defaults to None.
@@ -288,9 +289,9 @@ def process_and_save_graph_from_dir(dir_path: str,
     """Create a graph from PDBBind and save it in processed_filename
 
     Args:
+        dir_path (str, optional): Path to the directory containing raw files. Defaults to None.
         processed_filename (str): Path to the processed file.
         atomic_distance_cutoff (float): Cutoff for inter-atomic distance.
-        dir_path (str, optional): Path to the directory containing raw files. Defaults to None.
         only_pocket (bool, optional): Use only the binding pocket or not. Defaults to False.
         target (float, optional): The target affinity. Defaults to None.
         cluster (int, optional): Cluster ID for ranking. Defaults to None.
@@ -482,7 +483,8 @@ class DockingPower_Dataset(pyg.data.InMemoryDataset):
                               ligand_path,
                               filename,
                               self.atomic_distance_cutoff,
-                              self.only_pocket,
+                              None,  # target
+                              None,  # cluster
                               pdb_id,
                               0.0,
                               '{}_ligand'.format(pdb_id)))
@@ -496,7 +498,8 @@ class DockingPower_Dataset(pyg.data.InMemoryDataset):
                                   mol2_dict[key][0],
                                   filename,
                                   self.atomic_distance_cutoff,
-                                  self.only_pocket,
+                                  None,  # target
+                                  None,  # cluster
                                   pdb_id,
                                   mol2_dict[key][1],
                                   key))
