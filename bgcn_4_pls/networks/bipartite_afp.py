@@ -2,11 +2,11 @@ from typing import Dict, List, Tuple
 
 import torch
 import torch_geometric as pyg
-from layers.bipartite_afp_layers import (AFP_GATE_GRUConv_InterMol,
-                                         AFP_GATE_GRUConv_IntraMol,
-                                         AFP_GATGRUConv_InterMol,
-                                         AFP_GATGRUConv_IntraMol,
-                                         AFP_GATGRUConvMol, molecular_pooling)
+from bgcn_4_pls.layers.bipartite_afp_layers import (AFP_GATE_GRUConv_InterMol,
+                                                    AFP_GATE_GRUConv_IntraMol,
+                                                    AFP_GATGRUConv_InterMol,
+                                                    AFP_GATGRUConv_IntraMol,
+                                                    AFP_GATGRUConvMol, molecular_pooling)
 from torch_geometric.nn import HeteroConv
 
 NB_ATOM_FTS = 23

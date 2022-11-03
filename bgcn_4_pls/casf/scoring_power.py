@@ -1,5 +1,5 @@
-from math import nan
 import math
+from math import nan
 from typing import Tuple
 
 import numpy as np
@@ -7,7 +7,7 @@ import pandas as pd
 import scipy
 import torch
 from sklearn import linear_model
-from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 
 def tensors_to_df(preds: torch.Tensor, targets: torch.Tensor) -> pd.DataFrame:

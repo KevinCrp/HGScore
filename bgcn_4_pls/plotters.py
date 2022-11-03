@@ -3,10 +3,9 @@ from typing import List
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import torch
 from sklearn import linear_model
-
-import seaborn as sns
 
 
 def plot_linear_reg(p: torch.Tensor, t: torch.Tensor, pearson_r: float,
@@ -54,3 +53,17 @@ def save_predictions(pdb_id: List, preds: torch.Tensor, filepath: str):
     t = np.concatenate((pdb_id, preds), axis=-1)
     df = pd.DataFrame(t, columns=['#code', 'score'])
     df.to_csv(filepath, index=False, header=True, sep=' ')
+
+
+def plot_docking_power_curve(tops_label, tops, filepath: str):
+    nb_top = len(tops_label)
+    fig, ax = plt.subplots()
+    ax.plot(tops_label, tops, color='blue', alpha=1.00)
+    ax.set_xlabel('Top')
+    ax.set_ylabel('Success rate (%)')
+    ax.set_xlim((1, nb_top))
+    ax.set_ylim((0, 110))
+    ax.set_xticks([1, 10, 20, 30, 40, 50])
+    ax.set_yticks([0, 20, 40, 60, 80, 100])
+    ax.fill_between(tops_label, tops, 0, color='blue', alpha=.1)
+    plt.savefig(filepath)

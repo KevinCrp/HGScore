@@ -1,44 +1,59 @@
 # Bipartite Graph Convolutional Network for Protein-Ligand Scoring
 
+## Installation
+1. Clone this repo
+2. Create a conda environment or a Docker container with provided files. Dockerfile and YAML files are provided in the `./venv` directory
+3. Install with `pip install .`
+
 ## Usage
 
-1. Create a conda environment or a Docker container with provided files
-2. Download the PDBBind database from http://www.pdbbind.org.cn/ with `download_pdbbind.sh`. Extracted PDBBind complexes are stored in *data/raw/*
-3. Our dataset split is provided with *data/\*.csv* files. Or make your own split using the `split_pdbbind.py` script. Splits are Train, Val, Casf13, and Casf16
+1. Download the PDBBind database from http://www.pdbbind.org.cn/ with `scripts/download_pdbbind.sh`. Extracted PDBBind complexes are stored in *data/raw/*
+You can also download the power_docking dataset for CASF's power docking assesment with `scripts/download_docking_power.sh`.
+2. Our dataset split is provided with *data/\*.csv* files. Or make your own split using the `python scripts/split_pdbbind.py` script. Splits are Train, Val, Casf13, and Casf16
 ````bash
-python split_pdbbind.py
+usage: split_pdbbind.py [-h] -data DATA [-nb_val NB_VAL]
+
+optional arguments:
+  -h, --help           show this help message and exit
+  -data DATA, -d DATA  Path to the data directory
+  -nb_val NB_VAL       Number of items from refined set used for validation (defaults to 1000)
 ````
-4. Now in *data/* there are four csv files (*[train|val|casf13|casf16].csv*)
-5. Use `python data.py` to create all graphs
+3. Use `python scripts/create_graphs.py` to create all graphs
 ````bash
-usage: data.py [-h] [-cutoff CUTOFF] [-docking_power]
+usage: create_graphs.py [-h] -data DATA [-pocket] [-cutoff CUTOFF] [-docking_power]
 
 optional arguments:
   -h, --help            show this help message and exit
+  -data DATA, -d DATA   Path to the data directory
+  -pocket               Flag allowing to consider only the binding pocket as defined by PDBBind
   -cutoff CUTOFF, -c CUTOFF
                         The cutoff to consider a link between a protein-ligand atom pair (defaults to 4.0)
   -docking_power, -dp   Flag allowing to create the docking power dataset
 ````
-6. Change model hyperparameters in `model_parameters.yaml`
-7. Launch the training 
+4. Change model hyperparameters in `model_parameters.yaml`
+5. Launch the training  `python scripts/trainer.py`
 ````bash
-usage: trainer.py [-h] [-nb_epochs NB_EPOCHS] [-cutoff CUTOFF]
+usage: trainer.py [-h] [-nb_epochs NB_EPOCHS] [-cutoff CUTOFF] -data DATA -model_parameters_path MODEL_PARAMETERS_PATH
 
 optional arguments:
   -h, --help            show this help message and exit
   -nb_epochs NB_EPOCHS, -ep NB_EPOCHS
-                        The maximum number of epochs (defaults to 100).
+                        The maximum number of epochs (defaults to 100)
   -cutoff CUTOFF, -c CUTOFF
-                        The cutoff to consider a link between a protein-ligand atom pair (defaults to 4.0).
+                        The cutoff to consider a link between a protein-ligand atom pair (defaults to 4.0)
+  -data DATA, -d DATA   Path to the data directory
+  -model_parameters_path MODEL_PARAMETERS_PATH, -mparam MODEL_PARAMETERS_PATH
+                        Path to the yaml model parameters
 ````
-8. Results will be saved in *experiments/BG_PLS/version_X*
-9. Access them with 
+6. Results will be saved in *experiments/BG_PLS/version_X*
+7. Access them with 
 ````bash
-tensorboard --logdir experiments/BG_PLS
+tensorboard --logdir experiments/BGCN_4_PLS
 ````
-10. ReTest a trained model on CASF 13 & 16 with `test_model_on_casf.py`
+8. ReTest a trained model on CASF 13 & 16 with `python scripts/assess_model_on_casf.py`
 ````bash
-usage: test_model_on_casf.py [-h] -checkpoint_path CHECKPOINT_PATH [-plot] [-casf_13] [-casf_16] [-cutoff CUTOFF] [-docking_power] [-docking_power_cutoff DOCKING_POWER_CUTOFF]
+usage: assess_model_on_casf.py [-h] -checkpoint_path CHECKPOINT_PATH [-plot] [-casf_13] [-casf_16] [-cutoff CUTOFF] [-docking_power]
+                             [-docking_power_cutoff DOCKING_POWER_CUTOFF] [-pocket] -data DATA
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -52,11 +67,14 @@ optional arguments:
   -docking_power, -dp   Flag allowing to compute the docking power
   -docking_power_cutoff DOCKING_POWER_CUTOFF, -dpc DOCKING_POWER_CUTOFF
                         The RMSD cutoff (in angstrom) to define near-native docking pose for Docking Power (defaults to 2.0)
+  -pocket               Flag allowing to consider only the binding pocket as defined by PDBBind
+  -data DATA, -d DATA   Path to the data directory
 ````
 ````bash
-python test_model_on_casf.py -ckpt models/model.ckpt -c 4.0 -p -casf_13 -casf_16
+python scripts/assess_model_on_casf.py -ckpt models/model.ckpt -c 4.0 -p -casf_13 -casf_16 -d data -pocket
 ````
-11. Score a protein-ligand complex with `python predict.py`
+9. Score a protein-ligand complex with `python scripts/predict.py`
+
 *According to the PDBBind pocket extraction strategy we consider a residue as being part of the binding if at least one residue's heavy atom is close to a cutoff (the cutoff used by PDBBind is 10.0A) of at least one ligand's heavy atom.*
 ````bash
 usage: predict.py [-h] -checkpoint_path CHECKPOINT_PATH -protein_path PROTEIN_PATH -ligand_path LIGAND_PATH [-cutoff CUTOFF] [-extract_pocket]

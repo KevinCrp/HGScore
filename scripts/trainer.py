@@ -1,5 +1,6 @@
 import argparse
 import multiprocessing as mp
+import os
 import os.path as osp
 from typing import Union
 
@@ -9,13 +10,13 @@ import yaml
 from pytorch_lightning.plugins import DDPPlugin
 from pytorch_lightning.utilities import rank_zero_only
 
-import config as cfg
-import data
-import model as md
+import bgcn_4_pls.data as data
+import bgcn_4_pls.model as md
 
 
 def train(atomic_distance_cutoff: float,
-          nb_epochs: int):
+          nb_epochs: int, data_path: str,
+          model_parameters_path: str):
     """Train the model
 
     Args:
@@ -27,13 +28,17 @@ def train(atomic_distance_cutoff: float,
     accelerator = 'gpu' if use_gpu else None
     strategy = DDPPlugin(find_unused_parameters=False) if use_gpu else None
     devices = gpus if gpus > 0 else None
-    exp_model_name = 'BG_PLS'
+    exp_model_name = 'BGCN_4_PLS'
+    experiments_path = osp.join('.', 'experiments')
+
+    if not osp.isdir(experiments_path):
+        os.mkdir(experiments_path)
 
     logger = pl.loggers.TensorBoardLogger(
-        cfg.experiments_path, name=exp_model_name)
+        experiments_path, name=exp_model_name)
 
     version_path = osp.join(
-        cfg.experiments_path, exp_model_name, 'version_' + str(logger.version))
+        experiments_path, exp_model_name, 'version_' + str(logger.version))
 
     checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=version_path,
                                                        save_top_k=1,
@@ -45,10 +50,10 @@ def train(atomic_distance_cutoff: float,
     callbacks = [pl.callbacks.LearningRateMonitor(
     ), checkpoint_callback, early_stopping_callback]
 
-    with open(cfg.model_parameters_path, 'r') as f_yaml:
+    with open(model_parameters_path, 'r') as f_yaml:
         model_parameters = yaml.safe_load(f_yaml)
 
-    datamodule = data.PDBBindDataModule(root=cfg.data_path,
+    datamodule = data.PDBBindDataModule(root=data_path,
                                         atomic_distance_cutoff=atomic_distance_cutoff,
                                         batch_size=model_parameters['batch_size'],
                                         num_workers=mp.cpu_count(),
@@ -134,14 +139,26 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-nb_epochs', '-ep',
                         type=int,
-                        help='The maximum number of epochs ',
+                        help='The maximum number of epochs (defaults to 100)',
                         default=100)
     parser.add_argument('-cutoff', '-c',
                         type=float,
-                        help='The cutoff to consider a link between a protein-ligand atom pair',
+                        help='The cutoff to consider a link between a protein-ligand atom pair (defaults to 4.0)',
                         default=4.0)
+    parser.add_argument('-data', '-d',
+                        type=str,
+                        required=True,
+                        help='Path to the data directory')
+    parser.add_argument('-model_parameters_path', '-mparam',
+                        type=str,
+                        required=True,
+                        help='Path to the yaml model parameters')
+
     args = parser.parse_args()
     atomic_distance_cutoff = args.cutoff
     nb_epochs = args.nb_epochs
+    data_path = args.data
+    model_parameters_path = args.model_parameters_path
     train(atomic_distance_cutoff=atomic_distance_cutoff,
-          nb_epochs=nb_epochs)
+          nb_epochs=nb_epochs, data_path=data_path,
+          model_parameters_path=model_parameters_path)

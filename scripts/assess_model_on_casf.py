@@ -8,13 +8,12 @@ import torch
 import torch_geometric as pyg
 import tqdm
 
-import config as cfg
-import data
-import model as md
-import plotters
-from casf.docking_power import docking_power_df
-from casf.ranking_power import ranking_power
-from casf.scoring_power import scoring_power
+import bgcn_4_pls.data as data
+import bgcn_4_pls.model as md
+import bgcn_4_pls.plotters as plotters
+from bgcn_4_pls.casf.docking_power import docking_power_df
+from bgcn_4_pls.casf.ranking_power import ranking_power
+from bgcn_4_pls.casf.scoring_power import scoring_power
 
 
 def predict_on_CASF(model: torch.nn.Module, dataloader: pyg.loader.DataLoader,
@@ -65,7 +64,8 @@ def predict_on_CASF(model: torch.nn.Module, dataloader: pyg.loader.DataLoader,
 def docking_power(model: torch.nn.Module,
                   dataloader: pyg.loader.DataLoader,
                   rmsd_cutoff: float,
-                  plot_path: str):
+                  do_plot: bool = False,
+                  plot_path: str = 'plot.png'):
     preds = []
     rmsd = []
     pdb_id = []
@@ -78,9 +78,11 @@ def docking_power(model: torch.nn.Module,
     zipped_list = list(zip(pdb_id, decoy_id, rmsd, preds))
     df = pd.DataFrame(zipped_list,
                       columns=['pdb_id', '#code', 'rmsd', 'score'])
-    return docking_power_df(docking_power_df=df,
-                            rmsd_cutoff=rmsd_cutoff,
-                            plot_path=plot_path)
+    res_dict, tops_label, tops = docking_power_df(docking_power_df=df,
+                                                  rmsd_cutoff=rmsd_cutoff)
+    if do_plot:
+        plotters.plot_docking_power_curve(tops_label, tops, plot_path)
+    return res_dict
 
 
 if __name__ == '__main__':
@@ -95,7 +97,7 @@ if __name__ == '__main__':
                         help='Test on CASF Core set v2016')
     parser.add_argument('-cutoff', '-c',
                         type=float,
-                        help='The cutoff to consider a link between a protein-ligand atom pair',
+                        help='The cutoff to consider a link between a protein-ligand atom pair (defaults to 4.0)',
                         default=4.0)
     parser.add_argument('-docking_power', '-dp',
                         action='store_true',
@@ -104,7 +106,13 @@ if __name__ == '__main__':
                         type=float,
                         default=2.0,
                         help='The RMSD cutoff (in angstrom) to define near-native docking pose for Docking Power (defaults to 2.0)')
-
+    parser.add_argument('-pocket',
+                        action='store_true',
+                        help='Flag allowing to consider only the binding pocket as defined by PDBBind')
+    parser.add_argument('-data', '-d',
+                        type=str,
+                        required=True,
+                        help='Path to the data directory')
     args = parser.parse_args()
 
     model_path = args.checkpoint_path
@@ -123,9 +131,9 @@ if __name__ == '__main__':
 
     if args.casf_13:
         print("CASF 2013 Testing ...")
-        dt_casf13 = data.CASFDataset(root=cfg.data_path, year='13',
+        dt_casf13 = data.CASFDataset(root=args.data, year='13',
                                      atomic_distance_cutoff=atomic_distance_cutoff,
-                                     only_pocket=cfg.data_use_only_pocket)
+                                     only_pocket=args.pocket)
         dl_casf13 = pyg.loader.DataLoader(dt_casf13,
                                           batch_size=1,
                                           num_workers=mp.cpu_count())
@@ -146,9 +154,9 @@ if __name__ == '__main__':
 
     if args.casf_16:
         print("CASF 2016 Testing ...")
-        dt_casf16 = data.CASFDataset(root=cfg.data_path, year='16',
+        dt_casf16 = data.CASFDataset(root=args.data, year='16',
                                      atomic_distance_cutoff=atomic_distance_cutoff,
-                                     only_pocket=cfg.data_use_only_pocket)
+                                     only_pocket=args.pocket)
         dl_casf16 = pyg.loader.DataLoader(dt_casf16,
                                           batch_size=1,
                                           num_workers=mp.cpu_count())
@@ -159,10 +167,10 @@ if __name__ == '__main__':
 
         if args.docking_power:
             print("\tDocking Power (CASF 2016)")
-            dt_dp = data.DockingPower_Dataset(root=cfg.data_path,
+            dt_dp = data.DockingPower_Dataset(root=args.data,
                                               year='16',
                                               atomic_distance_cutoff=atomic_distance_cutoff,
-                                              only_pocket=cfg.data_use_only_pocket)
+                                              only_pocket=args.pocket)
             dl_docking_power = pyg.loader.DataLoader(dt_dp,
                                                      batch_size=1,
                                                      num_workers=mp.cpu_count())
@@ -172,6 +180,7 @@ if __name__ == '__main__':
             docking_power_res_dict = docking_power(model=model,
                                                    dataloader=dl_docking_power,
                                                    rmsd_cutoff=args.docking_power_cutoff,
+                                                   do_plot=args.plot,
                                                    plot_path=docking_power_plot_path)
 
         print("\tScoring Power:")

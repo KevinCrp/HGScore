@@ -9,10 +9,10 @@ import torch.nn.functional as F
 import torch_geometric as pyg
 import torchmetrics.functional as tmf
 
-import plotters
-from casf.ranking_power import ranking_power
-from casf.scoring_power import scoring_power
-from networks.bipartite_afp import BGCN_4_PLS
+import bgcn_4_pls.plotters as plotters
+from bgcn_4_pls.casf.ranking_power import ranking_power
+from bgcn_4_pls.casf.scoring_power import scoring_power
+from bgcn_4_pls.networks.bipartite_afp import BGCN_4_PLS
 
 
 class Model(pl.LightningModule):
