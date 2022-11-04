@@ -5,6 +5,10 @@
 2. Create a conda environment or a Docker container with provided files. Dockerfile and YAML files are provided in the `./venv` directory
 3. Install with `pip install .`
 
+## Test
+- Install pytest `pip install pytest`
+- Run `pytest -v`
+
 ## Usage
 
 1. Download the PDBBind database from http://www.pdbbind.org.cn/ with `scripts/download_pdbbind.sh`. Extracted PDBBind complexes are stored in *data/raw/*
