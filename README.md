@@ -1,13 +1,14 @@
 # Bipartite Graph Convolutional Network for Protein-Ligand Scoring
 
 #### Compatibility
-| **BGCN_4_PLS**    | **v1.0** | **v1.1** |
-|-------------------|:--------:|:--------:|
-| Python            | 3.7; 3.8 |      3.8 |
-| CudaToolKit       |     11.3 |     11.3 |
-| PyTorch           |   10.0.0 |   11.0.0 |
-| PyTorch Lightning |    1.5.9 |    1.7.7 |
-| PyTorch Geometric |    2.0.4 |    2.1.0 |
+| **BGCN_4_PLS**    | **v1.0.0** |     **v1.1.0**     |
+|-------------------|:----------:|:------------------:|
+| *Branch*          |   *Master* |*feature/upgradetp* |
+| Python            |   3.7; 3.8 |                3.8 |
+| CudaToolKit       |       11.3 |               11.3 |
+| PyTorch           |     10.0.0 |             11.0.0 |
+| PyTorch Lightning |      1.5.9 |              1.7.7 |
+| PyTorch Geometric |      2.0.4 |              2.1.0 |
 
 #### Installation
 1. Clone this repo
@@ -59,7 +60,7 @@ optional arguments:
 ````bash
 tensorboard --logdir experiments/BGCN_4_PLS
 ````
-8. ReTest a trained model on CASF 13 & 16 with `python scripts/assess_model_on_casf.py`
+8. Assess a trained model on CASF 13 & 16 with `python scripts/assess_model_on_casf.py`
 ````bash
 usage: assess_model_on_casf.py [-h] -checkpoint_path CHECKPOINT_PATH [-plot] [-casf_13] [-casf_16] [-cutoff CUTOFF] [-docking_power]
                              [-docking_power_cutoff DOCKING_POWER_CUTOFF] [-pocket] -data DATA
@@ -84,7 +85,7 @@ python scripts/assess_model_on_casf.py -ckpt models/model.ckpt -c 4.0 -p -casf_1
 ````
 9. Score a protein-ligand complex with `python scripts/predict.py`
 
-*According to the PDBBind pocket extraction strategy we consider a residue as being part of the binding if at least one residue's heavy atom is close to a cutoff (the cutoff used by PDBBind is 10.0A) of at least one ligand's heavy atom.*
+*According to the PDBBind pocket extraction strategy we consider a residue as being part of the binding pocket if at least one residue's heavy atom is close to a cutoff (the cutoff used by PDBBind is 10.0A) of at least one ligand's heavy atom.*
 ````bash
 usage: predict.py [-h] -checkpoint_path CHECKPOINT_PATH -protein_path PROTEIN_PATH -ligand_path LIGAND_PATH [-cutoff CUTOFF] [-extract_pocket]
                   [-extract_pocket_cutoff EXTRACT_POCKET_CUTOFF]
