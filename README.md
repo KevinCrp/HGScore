@@ -1,5 +1,5 @@
 # Bipartite Graph Convolutional Network for Protein-Ligand Scoring
-
+![coverage badge](tests/badges/coverage.svg)
 ## Installation
 1. Clone this repo
 2. Create a conda environment or a Docker container with provided files. Dockerfile and YAML files are provided in the `./venv` directory
