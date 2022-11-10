@@ -1,0 +1,27 @@
+# Network Architecture
+## Atomic Part
+hetero_aggr: mean
+num_layers: 3 # Number of layers for hidden_channels_la and hidden_channels_pa
+heads: 2
+### Ligand
+hidden_channels_la:
+- 48
+- 76
+- 121
+### Protein
+hidden_channels_pa:
+- 48
+- 57
+- 68
+## Molecular Part
+molecular_embedding_size: 4
+## Final MLP
+mlp_channels:
+- 189
+- 94
+- 1
+# Other Parameters
+dropout: 0.13
+lr: 0.001
+weight_decay: 0.0001
+batch_size: 64

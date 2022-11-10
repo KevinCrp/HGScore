@@ -1,9 +1,13 @@
 # Bipartite Graph Convolutional Network for Protein-Ligand Scoring
-
+![coverage badge](tests/badges/coverage.svg)
 ## Installation
 1. Clone this repo
 2. Create a conda environment or a Docker container with provided files. Dockerfile and YAML files are provided in the `./venv` directory
 3. Install with `pip install .`
+
+## Test
+- Install pytest `pip install pytest`
+- Run `pytest -v`
 
 ## Usage
 
