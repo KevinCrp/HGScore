@@ -63,7 +63,7 @@ def pocket_extraction(prot_path: str,
         ligand_coords = df_atom_lig[[
             'x_coord', 'y_coord', 'z_coord']].to_numpy()
 
-    df_grouped = ppdb_prot.df['ATOM'].groupby('residue_number')
+    df_grouped = ppdb_prot.df['ATOM'].groupby(['residue_number', 'chain_id'])
     list_df_in_site = []
     for _, group in df_grouped:
         res_coords = group[['x_coord', 'y_coord', 'z_coord']].to_numpy()
