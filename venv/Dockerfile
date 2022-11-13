@@ -1,6 +1,9 @@
 FROM pytorch/pytorch:1.10.0-cuda11.3-cudnn8-devel
 WORKDIR "/home"
 
+# Add missing Public Keys
+RUN apt-get update 2>&1 | sed -ne 's?^.*NO_PUBKEY ??p' | xargs -r -- apt-key adv --keyserver keyserver.ubuntu.com --recv-keys
+
 # Install base utilities
 RUN apt-get update && apt-get install -y build-essential \
     autoconf \
