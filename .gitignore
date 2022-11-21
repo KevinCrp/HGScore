@@ -8,3 +8,4 @@ data/raw
 data/decoys_docking/*
 build/*
 *.egg-info/*
+.coverage
