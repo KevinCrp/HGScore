@@ -100,3 +100,37 @@ optional arguments:
   -extract_pocket_cutoff EXTRACT_POCKET_CUTOFF
                         Cutoff for pocket extraction (Defaults to 10.0A)
 ````
+
+## HPO with Optuna https://optuna.readthedocs.io/en/stable/index.html
+* Install MySQL
+```bash
+apt update
+```
+```bash
+apt install mysql-server
+```
+```bash
+service mysql start
+```
+* Install PyMySQL `pip install PyMySQL`
+* Create a USER `optuna` with `password` as PASSWORD
+```SQL
+CREATE USER 'optuna'@'localhost' IDENTIFIED BY 'password';
+```
+* Set the privileges
+```SQL
+GRANT ALL PRIVILEGES ON *.* TO 'optuna'@'localhost' WITH GRANT OPTION;
+```
+* Create a new database
+```SQL
+CREATE DATABASE IF NOT EXISTS bg_pls_hpo;
+```
+* Create a new optuna study
+```bash
+optuna create-study --study-name "bg_pls_hpo" --storage "mysql+pymysql://optuna:password@localhost/bg_pls_hpo" --direction "maximize"
+```
+* Set hyperparameters ranges in `config_optuna_hpo.py` 
+* Launch the HPO, run it as many times as you want (distributed HPO)
+```bash
+python trainer_optuna.py
+```

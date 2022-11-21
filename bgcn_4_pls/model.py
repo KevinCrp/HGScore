@@ -192,17 +192,18 @@ class Model(pl.LightningModule):
         }
         self.log_dict(metrics_dict, sync_dist=True)
 
-    def set_casf_test(self, version: Union[int, str]):
+    def set_casf_test(self, version: Union[int, str], info: str=""):
         """Reset all names and values used in model testing according to the given version
 
         Args:
             version (Union[int, str]): The CASF's version, must be 13 or 16
+            info (str, optional): Allows to add info in the casf metric names. Defaults to "".
         """
         if isinstance(version, int):
             version = str(version)
-        self.casf_name = 'casf_' + version
-        self.reg_linear_name = 'reg_linear_' + version + '.png'
-        self.output_csv = 'scores_' + version + '.csv'
+        self.casf_name = 'casf_' + version + "_" + info
+        self.reg_linear_name = 'reg_linear_' + version + "_" + info + '.png'
+        self.output_csv = 'scores_' + version + "_" + info + '.csv'
 
         self.ranking_nb_in_clusters = 0
         if version == '13':
