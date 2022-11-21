@@ -99,18 +99,14 @@ def train(atomic_distance_cutoff: float,
         best_model_path = list_bmp[0]
 
     print("Best Checkpoint path : ", best_model_path)
-    test_best_model(best_model_path, datamodule, logger, 16,
-                    accelerator=accelerator,
-                    devices=devices,
-                    strategy=strategy)
+    test_best_model(best_model_path, datamodule, logger, 16)
 
 
 @rank_zero_only
 def test_best_model(best_model_path: str,
                     datamodule: pl.LightningDataModule,
                     logger: pl.loggers.TensorBoardLogger,
-                    casf_version: Union[int, str],
-                    **kwargs):
+                    casf_version: Union[int, str]):
     """Test the given model on the dataloader CASF
 
     Args:
@@ -118,11 +114,12 @@ def test_best_model(best_model_path: str,
         datamodule (pl.LightningDataModule): PL Datamodule
         logger (pl.loggers.TensorBoardLogger): Tensorboard Logger
         casf_version (Union[int, str]): The Casf version, must be 13 or 16.
-        **kwargs: Additional arguments of pytorch_lightning.Trainer
     """
-    accelerator = kwargs.get('accelerator', None)
-    devices = kwargs.get('devices', None)
-    strategy = kwargs.get('strategy', None)
+    gpus = torch.cuda.device_count()
+    use_gpu = gpus > 0
+    accelerator = 'gpu' if use_gpu else None
+    strategy = DDPPlugin(find_unused_parameters=False) if use_gpu else None
+    devices = gpus if gpus > 0 else None
     trainer = pl.Trainer(accelerator=accelerator,
                          devices=devices,
                          strategy=strategy,
