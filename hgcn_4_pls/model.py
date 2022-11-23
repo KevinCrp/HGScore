@@ -9,10 +9,10 @@ import torch.nn.functional as F
 import torch_geometric as pyg
 import torchmetrics.functional as tmf
 
-import bgcn_4_pls.plotters as plotters
-from bgcn_4_pls.casf.ranking_power import ranking_power
-from bgcn_4_pls.casf.scoring_power import scoring_power
-from bgcn_4_pls.networks.bipartite_afp import BGCN_4_PLS
+import hgcn_4_pls.plotters as plotters
+from hgcn_4_pls.casf.ranking_power import ranking_power
+from hgcn_4_pls.casf.scoring_power import scoring_power
+from hgcn_4_pls.networks.heterogeneous_afp import HGCN_4_PLS
 
 
 class Model(pl.LightningModule):
@@ -62,7 +62,7 @@ class Model(pl.LightningModule):
                           " config.ini")
             sys.exit()
         self.plot_path = plot_path
-        self.model = BGCN_4_PLS(list_hidden_channels_pa=hidden_channels_pa,
+        self.model = HGCN_4_PLS(list_hidden_channels_pa=hidden_channels_pa,
                                 list_hidden_channels_la=hidden_channels_la,
                                 num_layers=num_layers,
                                 hetero_aggr=hetero_aggr,
