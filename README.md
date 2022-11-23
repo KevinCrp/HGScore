@@ -51,10 +51,10 @@ optional arguments:
   -model_parameters_path MODEL_PARAMETERS_PATH, -mparam MODEL_PARAMETERS_PATH
                         Path to the yaml model parameters
 ````
-6. Results will be saved in *experiments/BGCN_4_PLS/version_X*
+6. Results will be saved in *experiments/HGCN_4_PLS/version_X*
 7. Access them with 
 ````bash
-tensorboard --logdir experiments/BGCN_4_PLS
+tensorboard --logdir experiments/HGCN_4_PLS
 ````
 8. Assess a trained model on CASF 13 & 16 with `python scripts/assess_model_on_casf.py`
 ````bash
