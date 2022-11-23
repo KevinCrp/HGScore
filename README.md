@@ -1,4 +1,4 @@
-# Bipartite Graph Convolutional Network for Protein-Ligand Scoring
+# Heterogeneous Graph Convolutional Network for Protein-Ligand Scoring
 
 ![coverage badge](tests/badges/coverage.svg)
 ## Installation
