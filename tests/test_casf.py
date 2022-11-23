@@ -1,9 +1,9 @@
 import numpy as np
 import torch
 import pandas as pd
-from bgcn_4_pls.casf.ranking_power import ranking_power
-from bgcn_4_pls.casf.scoring_power import scoring_power
-from bgcn_4_pls.casf.docking_power import docking_power_df
+from hgcn_4_pls.casf.ranking_power import ranking_power
+from hgcn_4_pls.casf.scoring_power import scoring_power
+from hgcn_4_pls.casf.docking_power import docking_power_df
 
 def test_scoring_power():
     preds = torch.Tensor([2.45, 1.67, 3.90, 6.35])

@@ -12,7 +12,7 @@ import torch_geometric as pyg
 from biopandas.mol2 import PandasMol2, split_multimol2
 from biopandas.pdb import PandasPdb
 
-import bgcn_4_pls.featurizer as f_atm
+import hgcn_4_pls.featurizer as f_atm
 
 
 def clean_pdb(pdb_path: str, out_filename: str):
@@ -171,7 +171,7 @@ def process_graph_from_files(protein_path: str,
                              pdb_id: str = None,
                              rmsd: float = 0.0,
                              decoy_id: str = None) -> pyg.data.HeteroData:
-    """Build a Bipartite Graph from a protein (whole or pocket) and a ligand files
+    """Build a heterogeneous Graph from a protein (whole or pocket) and a ligand files
 
     Args:
         protein_path (str): Path to the protien PDB (or the pocket)
@@ -184,7 +184,7 @@ def process_graph_from_files(protein_path: str,
         decoy_id (str, optional): Contains the ligand id for docking power. Defaults to None.
 
     Returns:
-        pyg.data.HeteroData: The bipartite graph
+        pyg.data.HeteroData: The heterogeneous graph
     """
     protein_dir, protein_name = osp.split(protein_path)
 

@@ -1,6 +1,6 @@
 import torch
 
-from bgcn_4_pls.plotters import (plot_docking_power_curve, plot_linear_reg,
+from hgcn_4_pls.plotters import (plot_docking_power_curve, plot_linear_reg,
                                  save_predictions)
 
 PATH_PLOT_TEST = "tests/plot_test.png"

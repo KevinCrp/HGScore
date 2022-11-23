@@ -1,6 +1,6 @@
-from bgcn_4_pls.featurizer import open_pdb
-from bgcn_4_pls.utilities.pockets import pocket_extraction
-from bgcn_4_pls.utilities.scpdb_split import load_index, split_dict, check_no_overlapping
+from hgcn_4_pls.featurizer import open_pdb
+from hgcn_4_pls.utilities.pockets import pocket_extraction
+from hgcn_4_pls.utilities.scpdb_split import load_index, split_dict, check_no_overlapping
 PATH_TO_LIGAND_MOL2 = 'tests/data/raw/4llx/4llx_ligand.mol2'
 PATH_TO_LIGAND_PDB = 'tests/data/raw/4llx/4llx_ligand.pdb'
 PATH_TO_PROTEIN_PDB = 'tests/data/raw/4llx/4llx_protein.pdb'

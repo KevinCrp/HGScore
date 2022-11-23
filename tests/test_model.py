@@ -7,10 +7,10 @@ import yaml
 from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.plugins import DDPPlugin
 
-import bgcn_4_pls.data as data
-from bgcn_4_pls import model as md
-from bgcn_4_pls.data import process_graph_from_files
-from bgcn_4_pls.utilities.pockets import pocket_extraction
+import hgcn_4_pls.data as data
+from hgcn_4_pls import model as md
+from hgcn_4_pls.data import process_graph_from_files
+from hgcn_4_pls.utilities.pockets import pocket_extraction
 
 MODEL_HPARAM_PATH = "tests/model_parameters.yaml"
 MODEL_PATH = 'models/model.ckpt'

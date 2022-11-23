@@ -9,9 +9,9 @@ import torch
 import yaml
 from pytorch_lightning.plugins import DDPPlugin
 from pytorch_lightning.utilities import rank_zero_only
-
-import bgcn_4_pls.data as data
-import bgcn_4_pls.model as md
+from pytorch_lightning.strategies import DDPStrategy
+import hgcn_4_pls.data as data
+import hgcn_4_pls.model as md
 
 
 def train(atomic_distance_cutoff: float,

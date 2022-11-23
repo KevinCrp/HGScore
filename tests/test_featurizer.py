@@ -1,5 +1,5 @@
-from bgcn_4_pls.data import clean_pdb
-from bgcn_4_pls.featurizer import (atom_hybridization_one_hot,
+from hgcn_4_pls.data import clean_pdb
+from hgcn_4_pls.featurizer import (atom_hybridization_one_hot,
                                    atom_type_one_hot, featurize, open_mol2,
                                    open_pdb, atom_degree_one_hot, is_pi)
 
