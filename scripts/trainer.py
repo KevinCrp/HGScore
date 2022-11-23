@@ -7,9 +7,9 @@ from typing import Union
 import pytorch_lightning as pl
 import torch
 import yaml
-from pytorch_lightning.plugins import DDPPlugin
-from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.strategies import DDPStrategy
+from pytorch_lightning.utilities import rank_zero_only
+
 import hgcn_4_pls.data as data
 import hgcn_4_pls.model as md
 
@@ -26,7 +26,7 @@ def train(atomic_distance_cutoff: float,
     gpus = torch.cuda.device_count()
     use_gpu = gpus > 0
     accelerator = 'gpu' if use_gpu else None
-    strategy = DDPPlugin(find_unused_parameters=False) if use_gpu else None
+    strategy = DDPStrategy(find_unused_parameters=False) if use_gpu else None
     devices = gpus if gpus > 0 else None
     exp_model_name = 'BGCN_4_PLS'
     experiments_path = osp.join('.', 'experiments')
@@ -118,7 +118,7 @@ def test_best_model(best_model_path: str,
     gpus = torch.cuda.device_count()
     use_gpu = gpus > 0
     accelerator = 'gpu' if use_gpu else None
-    strategy = DDPPlugin(find_unused_parameters=False) if use_gpu else None
+    strategy = DDPStrategy(find_unused_parameters=False) if use_gpu else None
     devices = gpus if gpus > 0 else None
     trainer = pl.Trainer(accelerator=accelerator,
                          devices=devices,
