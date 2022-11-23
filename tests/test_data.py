@@ -2,7 +2,7 @@ from glob import glob
 import os
 import os.path as osp
 import torch
-from bgcn_4_pls.data import (process_graph_from_files, process_graph_from_dir,
+from hgcn_4_pls.data import (process_graph_from_files, process_graph_from_dir,
                              CASFDataset, DockingPower_Dataset, PDBBindDataset,
                              PDBBindDataModule, DockingPowerDataModule,
                              process_and_save_graph_from_files, process_and_save_graph_from_dir)
