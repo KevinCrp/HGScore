@@ -1,11 +1,11 @@
-import os.path as osp
+import multiprocessing as mp
 
 import pytorch_lightning as pl
 import torch
 import torch_geometric as pyg
 import yaml
 from pytorch_lightning import loggers as pl_loggers
-from pytorch_lightning.plugins import DDPPlugin
+from pytorch_lightning.strategies import DDPStrategy
 
 import hgcn_4_pls.data as data
 from hgcn_4_pls import model as md
@@ -102,7 +102,7 @@ def test_training_gpu():
     use_gpu = gpus > 0
     if use_gpu:
         accelerator = 'gpu' if use_gpu else None
-        strategy = DDPPlugin(find_unused_parameters=False) if use_gpu else None
+        strategy = DDPStrategy(find_unused_parameters=False) if use_gpu else None
         devices = gpus if gpus > 0 else None
         tb_logger = pl_loggers.TensorBoardLogger(save_dir=PATH_PL_LOGS+'/')
         with open(MODEL_HPARAM_PATH, 'r') as f_yaml:
@@ -125,14 +125,14 @@ def test_training_gpu():
         datamodule = data.PDBBindDataModule(root=DATA_ROOT,
                                             atomic_distance_cutoff=ATM_CUTOFF,
                                             batch_size=5,
-                                            num_workers=1,
+                                            num_workers=mp.cpu_count(),
                                             only_pocket=POCKET)
 
         trainer = pl.Trainer(accelerator=accelerator,
                              devices=devices,
                              strategy=strategy,
                              max_epochs=1,
-                             log_every_n_steps=2000,
+                             log_every_n_steps=1,
                              num_sanity_val_steps=0,
                              logger=tb_logger
                              )
@@ -161,11 +161,11 @@ def test_training_cpu():
     datamodule = data.PDBBindDataModule(root=DATA_ROOT,
                                         atomic_distance_cutoff=ATM_CUTOFF,
                                         batch_size=5,
-                                        num_workers=1,
+                                        num_workers=mp.cpu_count(),
                                         only_pocket=POCKET)
 
     trainer = pl.Trainer(max_epochs=1,
-                         log_every_n_steps=2000,
+                         log_every_n_steps=1,
                          num_sanity_val_steps=0,
                          logger=tb_logger
                         )
