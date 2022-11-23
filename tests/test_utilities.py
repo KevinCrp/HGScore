@@ -1,6 +1,8 @@
 from hgcn_4_pls.featurizer import open_pdb
 from hgcn_4_pls.utilities.pockets import pocket_extraction
-from hgcn_4_pls.utilities.scpdb_split import load_index, split_dict, check_no_overlapping
+from hgcn_4_pls.utilities.scpdb_split import (check_no_overlapping, load_index,
+                                              split_dict)
+
 PATH_TO_LIGAND_MOL2 = 'tests/data/raw/4llx/4llx_ligand.mol2'
 PATH_TO_LIGAND_PDB = 'tests/data/raw/4llx/4llx_ligand.pdb'
 PATH_TO_PROTEIN_PDB = 'tests/data/raw/4llx/4llx_protein.pdb'
@@ -24,7 +26,8 @@ def test_pocket_extraction_pdb_ligand():
 
 
 PATH_TO_INDEX_CASF16 = "tests/data/index/CoreSet_2016.dat"
-PATH_TO_INDEX_REF= "tests/data/index/INDEX_refined_data.2020"
+PATH_TO_INDEX_REF = "tests/data/index/INDEX_refined_data.2020"
+
 
 def test_load_index():
     d = load_index(index_path=PATH_TO_INDEX_CASF16,
@@ -32,11 +35,13 @@ def test_load_index():
                    exluded_pdb=['4llx'])
     assert len(d.keys()) == 284
 
+
 def test_load_index():
     d = load_index(index_path=PATH_TO_INDEX_REF,
                    with_cluster=False,
                    exluded_pdb=[])
     assert len(d.keys()) == 5316
+
 
 def test_split_dict():
     d = load_index(index_path=PATH_TO_INDEX_CASF16,
@@ -46,6 +51,7 @@ def test_split_dict():
     assert len(d1.keys()) == 85
     assert len(d2.keys()) == 200
 
+
 def test_check_no_overlapping():
     d = load_index(index_path=PATH_TO_INDEX_CASF16,
                    with_cluster=True,
@@ -53,4 +59,3 @@ def test_check_no_overlapping():
     d1, d2 = split_dict(d, 85)
     assert check_no_overlapping(d1, d2) == True
     assert check_no_overlapping(d1, d1) == False
-

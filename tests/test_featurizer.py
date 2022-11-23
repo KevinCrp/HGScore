@@ -1,7 +1,8 @@
 from hgcn_4_pls.data import clean_pdb
-from hgcn_4_pls.featurizer import (atom_hybridization_one_hot,
-                                   atom_type_one_hot, featurize, open_mol2,
-                                   open_pdb, atom_degree_one_hot, is_pi)
+from hgcn_4_pls.featurizer import (atom_degree_one_hot,
+                                   atom_hybridization_one_hot,
+                                   atom_type_one_hot, featurize, is_pi,
+                                   open_mol2, open_pdb)
 
 PATH_TO_PROTEIN_PDB = 'tests/data/raw/4llx/4llx_protein.pdb'
 PATH_TO_POCKET_PDB = 'tests/data/raw/4llx/4llx_pocket.pdb'
@@ -93,7 +94,7 @@ def check_featurize(protein_atom_properties_list,
 
 
 def test_is_pi():
-    #Key are residues / Values are atom_names with pi interaction
+    # Key are residues / Values are atom_names with pi interaction
     dico = {
         'HIS': ['CG', 'CD2', 'NE2', 'CE1', 'ND1'],
         'PHE': ['CG', 'CD2', 'CE2', 'CZ', 'CE1', 'CD1'],

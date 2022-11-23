@@ -1,11 +1,14 @@
-from glob import glob
 import os
 import os.path as osp
+from glob import glob
+
 import torch
-from hgcn_4_pls.data import (process_graph_from_files, process_graph_from_dir,
-                             CASFDataset, DockingPower_Dataset, PDBBindDataset,
-                             PDBBindDataModule, DockingPowerDataModule,
-                             process_and_save_graph_from_files, process_and_save_graph_from_dir)
+
+from hgcn_4_pls.data import (CASFDataset, DockingPower_Dataset,
+                             DockingPowerDataModule, PDBBindDataModule,
+                             PDBBindDataset, process_and_save_graph_from_dir,
+                             process_and_save_graph_from_files,
+                             process_graph_from_dir, process_graph_from_files)
 
 DATA_ROOT = 'tests/data'
 ATM_CUTOFF = 4.0
@@ -72,14 +75,14 @@ def test_process_graph_from_dir():
 def test_process_and_save_graph_from_files():
     rm_processed_file(PATH_TO_GRAPH_TEST)
     process_and_save_graph_from_files(protein_path=PATH_TO_POCKET_PDB,
-                                          ligand_path=PATH_TO_LIGAND_MOL2,
-                                          processed_filename=PATH_TO_GRAPH_TEST,
-                                          atomic_distance_cutoff=ATM_CUTOFF,
-                                          target=4.36,
-                                          cluster=1,
-                                          pdb_id='4llx',
-                                          rmsd=1.0,
-                                          decoy_id='ligand')
+                                      ligand_path=PATH_TO_LIGAND_MOL2,
+                                      processed_filename=PATH_TO_GRAPH_TEST,
+                                      atomic_distance_cutoff=ATM_CUTOFF,
+                                      target=4.36,
+                                      cluster=1,
+                                      pdb_id='4llx',
+                                      rmsd=1.0,
+                                      decoy_id='ligand')
     g = torch.load(PATH_TO_GRAPH_TEST)
     assert g['protein_atoms'].x.shape[0] == 199
     assert g['protein_atoms'].x.shape[1] == 23
@@ -92,14 +95,14 @@ def test_process_and_save_graph_from_files():
 def test_process_and_save_graph_from_dir():
     rm_processed_file(PATH_TO_GRAPH_TEST)
     process_and_save_graph_from_dir(dir_path=PATH_TO_PDB_DIR,
-                                        processed_filename=PATH_TO_GRAPH_TEST,
-                                        atomic_distance_cutoff=ATM_CUTOFF,
-                                        only_pocket=POCKET,
-                                        target=4.36,
-                                        cluster=1,
-                                        pdb_id='4llx',
-                                        rmsd=1.0,
-                                        decoy_id='ligand')
+                                    processed_filename=PATH_TO_GRAPH_TEST,
+                                    atomic_distance_cutoff=ATM_CUTOFF,
+                                    only_pocket=POCKET,
+                                    target=4.36,
+                                    cluster=1,
+                                    pdb_id='4llx',
+                                    rmsd=1.0,
+                                    decoy_id='ligand')
     g = torch.load(PATH_TO_GRAPH_TEST)
     assert g['protein_atoms'].x.shape[0] == 199
     assert g['protein_atoms'].x.shape[1] == 23
