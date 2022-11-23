@@ -8,12 +8,12 @@ import torch
 import torch_geometric as pyg
 import tqdm
 
-import bgcn_4_pls.data as data
-import bgcn_4_pls.model as md
-import bgcn_4_pls.plotters as plotters
-from bgcn_4_pls.casf.docking_power import docking_power_df
-from bgcn_4_pls.casf.ranking_power import ranking_power
-from bgcn_4_pls.casf.scoring_power import scoring_power
+import hgcn_4_pls.data as data
+import hgcn_4_pls.model as md
+import hgcn_4_pls.plotters as plotters
+from hgcn_4_pls.casf.docking_power import docking_power_df
+from hgcn_4_pls.casf.ranking_power import ranking_power
+from hgcn_4_pls.casf.scoring_power import scoring_power
 
 
 def predict_on_CASF(model: torch.nn.Module, dataloader: pyg.loader.DataLoader,
