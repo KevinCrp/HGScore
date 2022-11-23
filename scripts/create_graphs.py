@@ -1,6 +1,6 @@
 import argparse
 
-from bgcn_4_pls.data import CASFDataset, DockingPower_Dataset, PDBBindDataset
+from hgcn_4_pls.data import CASFDataset, DockingPower_Dataset, PDBBindDataset
 
 if __name__ == '__main__':
     # To Create datasets
