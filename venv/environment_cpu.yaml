@@ -1,4 +1,4 @@
-name: conda_env_BGCN_4_PLS_cpu
+name: conda_env_HGCN_4_PLS_cpu
 channels:
 - conda-forge
 - pyg
