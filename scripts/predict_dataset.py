@@ -96,13 +96,10 @@ if __name__ == '__main__':
     for i in range(nb_complexes):
         protein_path = df_dataset.iloc[i]['protein_path']
         ligand_path = df_dataset.iloc[i]['ligand_path']
-        score = 0.2
-        # score = predict(protein_path, ligand_path, model,
-        #                 atomic_distance_cutoff, extract_pocket, pocket_cutoff)
         pool_args += [protein_path, ligand_path, model,
                       atomic_distance_cutoff, extract_pocket, pocket_cutoff]
     pool = mp.Pool(mp.cpu_count())
-    data_list = pool.starmap(pool_args)
+    data_list = pool.starmap(predict, pool_args)
 
     for data in data_list:
         score = data[0]
