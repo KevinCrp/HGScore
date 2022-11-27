@@ -99,7 +99,7 @@ if __name__ == '__main__':
         pool_args += [protein_path, ligand_path, model,
                       atomic_distance_cutoff, extract_pocket, pocket_cutoff]
     pool = mp.Pool(mp.cpu_count())
-    data_list = pool.starmap(predict, pool_args)
+    data_list = pool.starmap(predict, pool_args, chunksize=100)
 
     for data in data_list:
         score = data[0]
