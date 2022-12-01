@@ -7,15 +7,15 @@ channels:
 dependencies:
 - python=3.8
 - cudatoolkit=11.3
-- pytorch=1.11.0=py3.8_cuda11.3_cudnn8.2.0_0
-- torchvision=0.12.0=py38_cu113
-- torchaudio=0.11.0=py38_cu113
+- pytorch=1.12.0=py3.8_cuda11.3_cudnn8.3.2_0
+- torchaudio=0.12.0=py38_cu113
+- torchvision=0.13.0=py38_cu113
 - openbabel=3.1.1
 - scikit-learn-intelex=2021.5.0
 - pandas=1.3.5
 - biopandas=0.4.1
 - pip=22.2.2
-- pyg=2.1.0=py38_torch_1.11.0_cu113
+- pyg=2.2.0=py38_torch_1.12.0_cu113
 - pytorch-lightning=1.7.7
 - xorg-libxrender=0.9.10
 - numpy=1.21.5

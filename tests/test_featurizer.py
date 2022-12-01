@@ -168,7 +168,7 @@ def test_featurize_ligand_pdb():
                     p_atm_to_l_edge_attr)
 
 
-def test_featurize_ligand_pdb():
+def test_featurize_ligand_pdb_intermol():
     clean_pdb(PATH_TO_POCKET_PDB, PATH_TO_CLEAN_PROTEIN_PDB)
     (protein_atom_properties_list,  # protein_atoms.x
      ligand_atom_properties_list,  # ligand_atoms.x

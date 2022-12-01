@@ -1,6 +1,5 @@
 data/processed/*
 data/decoys_docking/*_[0-9]*.mol2
-data/raw/*/*_ligand.pdb
 data/raw/*/*_ligand.sdf
 data/raw/*/clean_*.pdb
 default/*
