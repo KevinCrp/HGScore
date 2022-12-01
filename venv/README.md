@@ -2,8 +2,8 @@
 
 ### Docker
 
-1. Create the Docker image `docker build -t your_image_name`
-2. Run your image `docker run -it your_image_name`
+1. Create the Docker image `docker build -t your_image_name .`
+2. Run your image `docker run -it -d your_image_name`
 3. Access to your container `docker exec -it <container id> bash`
 
 ### Conda
