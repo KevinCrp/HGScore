@@ -35,7 +35,7 @@ def predict(protein_path: str,
     """
     if extract_pocket:
         prot_dir, prot_name = osp.split(protein_path)
-        pocket_path = osp.join(prot_dir, "bgpls_pocket_{}".format(prot_name))
+        pocket_path = osp.join(prot_dir, "hgcnpls_pocket_{}".format(prot_name))
         if not osp.isfile(pocket_path):
             pocket_extraction(protein_path, ligand_path,
                               pocket_path, pocket_cutoff)
