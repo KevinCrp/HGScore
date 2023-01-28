@@ -1,17 +1,19 @@
-# Heterogeneous Graph Convolutional Network for Protein-Ligand Scoring
+# HGScore
+
+## *A Heterogeneous Graph Convolutional Network for Protein-Ligand Scoring*
 
 ![coverage badge](tests/badges/coverage.svg)
-## Installation
+### Installation
 1. Clone this repo
 2. Create a conda environment or a Docker container with provided files. Dockerfile and YAML files are provided in the `./venv` directory
 3. Install with `pip install .`
 
 
-## Test
+### Test
 - Install pytest `pip install pytest`
 - Run `pytest -v`
 
-## Usage
+### Usage
 
 1. Download the PDBBind database from http://www.pdbbind.org.cn/ with `scripts/download_pdbbind.sh`. Extracted PDBBind complexes are stored in *data/raw/*
 You can also download the power_docking dataset for CASF's power docking assesment with `scripts/download_docking_power.sh`.
@@ -51,10 +53,10 @@ optional arguments:
   -model_parameters_path MODEL_PARAMETERS_PATH, -mparam MODEL_PARAMETERS_PATH
                         Path to the yaml model parameters
 ````
-6. Results will be saved in *experiments/HGCN_4_PLS/version_X*
+6. Results will be saved in *experiments/HGScore/version_X*
 7. Access them with 
 ````bash
-tensorboard --logdir experiments/HGCN_4_PLS
+tensorboard --logdir experiments/HGScore
 ````
 8. Assess a trained model on CASF 13 & 16 with `python scripts/assess_model_on_casf.py`
 ````bash
