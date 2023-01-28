@@ -4,7 +4,7 @@ from glob import glob
 
 import torch
 
-from hgcn_4_pls.data import (CASFDataset, DockingPower_Dataset,
+from HGScore.data import (CASFDataset, DockingPower_Dataset,
                              DockingPowerDataModule, PDBBindDataModule,
                              PDBBindDataset, process_and_save_graph_from_dir,
                              process_and_save_graph_from_files,
