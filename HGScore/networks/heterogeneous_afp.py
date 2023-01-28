@@ -4,7 +4,7 @@ import torch
 import torch_geometric as pyg
 from torch_geometric.nn import HeteroConv
 
-from hgcn_4_pls.layers.layers import (AFP_GATE_GRUConv_InterMol,
+from HGScore.layers.layers import (AFP_GATE_GRUConv_InterMol,
                                       AFP_GATE_GRUConv_IntraMol,
                                       AFP_GATGRUConv_InterMol,
                                       AFP_GATGRUConv_IntraMol,
