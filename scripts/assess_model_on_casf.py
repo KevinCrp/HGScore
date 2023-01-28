@@ -8,12 +8,12 @@ import torch
 import torch_geometric as pyg
 import tqdm
 
-import hgcn_4_pls.data as data
-import hgcn_4_pls.model as md
-import hgcn_4_pls.plotters as plotters
-from hgcn_4_pls.casf.docking_power import docking_power_df
-from hgcn_4_pls.casf.ranking_power import ranking_power
-from hgcn_4_pls.casf.scoring_power import scoring_power
+import HGScore.data as data
+import HGScore.model as md
+import HGScore.plotters as plotters
+from HGScore.casf.docking_power import docking_power_df
+from HGScore.casf.ranking_power import ranking_power
+from HGScore.casf.scoring_power import scoring_power
 
 
 def predict_on_CASF(model: torch.nn.Module, dataloader: pyg.loader.DataLoader,
