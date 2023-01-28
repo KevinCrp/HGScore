@@ -1,6 +1,6 @@
-from hgcn_4_pls.featurizer import open_pdb
-from hgcn_4_pls.utilities.pockets import pocket_extraction
-from hgcn_4_pls.utilities.scpdb_split import (check_no_overlapping, load_index,
+from HGScore.featurizer import open_pdb
+from HGScore.utilities.pockets import pocket_extraction
+from HGScore.utilities.scpdb_split import (check_no_overlapping, load_index,
                                               split_dict)
 
 PATH_TO_LIGAND_MOL2 = 'tests/data/raw/4llx/4llx_ligand.mol2'

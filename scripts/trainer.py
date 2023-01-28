@@ -10,8 +10,8 @@ import yaml
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.utilities import rank_zero_only
 
-import hgcn_4_pls.data as data
-import hgcn_4_pls.model as md
+import HGScore.data as data
+import HGScore.model as md
 
 
 def train(atomic_distance_cutoff: float,
@@ -28,7 +28,7 @@ def train(atomic_distance_cutoff: float,
     accelerator = 'gpu' if use_gpu else None
     strategy = DDPStrategy(find_unused_parameters=False) if use_gpu else None
     devices = gpus if gpus > 0 else None
-    exp_model_name = 'HGCN_4_PLS'
+    exp_model_name = 'HGScore'
     experiments_path = osp.join('.', 'experiments')
 
     if not osp.isdir(experiments_path):

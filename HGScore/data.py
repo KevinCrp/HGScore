@@ -12,7 +12,7 @@ import torch_geometric as pyg
 from biopandas.mol2 import PandasMol2, split_multimol2
 from biopandas.pdb import PandasPdb
 
-import hgcn_4_pls.featurizer as f_atm
+import HGScore.featurizer as f_atm
 
 
 def clean_pdb(pdb_path: str, out_filename: str):

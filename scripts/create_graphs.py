@@ -1,6 +1,6 @@
 import argparse
 
-from hgcn_4_pls.data import CASFDataset, DockingPower_Dataset, PDBBindDataset
+from HGScore.data import CASFDataset, DockingPower_Dataset, PDBBindDataset
 
 if __name__ == '__main__':
     # To Create datasets

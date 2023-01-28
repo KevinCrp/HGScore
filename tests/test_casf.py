@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 import torch
 
-from hgcn_4_pls.casf.docking_power import docking_power_df
-from hgcn_4_pls.casf.ranking_power import ranking_power
-from hgcn_4_pls.casf.scoring_power import scoring_power
+from HGScore.casf.docking_power import docking_power_df
+from HGScore.casf.ranking_power import ranking_power
+from HGScore.casf.scoring_power import scoring_power
 
 
 def test_scoring_power():

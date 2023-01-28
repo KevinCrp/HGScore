@@ -8,9 +8,9 @@ import pandas as pd
 import torch_geometric as pyg
 from tqdm import tqdm
 
-import hgcn_4_pls.model as md
-from hgcn_4_pls.data import process_graph_from_files
-from hgcn_4_pls.utilities.pockets import pocket_extraction
+import HGScore.model as md
+from HGScore.data import process_graph_from_files
+from HGScore.utilities.pockets import pocket_extraction
 
 
 def predict(protein_path: str,

@@ -7,10 +7,10 @@ import yaml
 from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.strategies import DDPStrategy
 
-import hgcn_4_pls.data as data
-from hgcn_4_pls import model as md
-from hgcn_4_pls.data import process_graph_from_files
-from hgcn_4_pls.utilities.pockets import pocket_extraction
+import HGScore.data as data
+from HGScore import model as md
+from HGScore.data import process_graph_from_files
+from HGScore.utilities.pockets import pocket_extraction
 
 MODEL_HPARAM_PATH = "tests/model_parameters.yaml"
 MODEL_PATH = 'models/model.ckpt'

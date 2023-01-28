@@ -9,7 +9,7 @@
 ### Conda
 
 1. Create the conda env `conda env create -f environment_[cpu|gpu].yml`
-2. Activate the env `conda activate conda_env_HGCN_4_PLS_[cpu|gpu]`
+2. Activate the env `conda activate conda_env_HGScore_[cpu|gpu]`
 3. Install Pyg-Lib :
 > pyg-lib provides efficient GPU-based routines to parallelize workloads in heterogeneous graphs across different node types and edge types.
 

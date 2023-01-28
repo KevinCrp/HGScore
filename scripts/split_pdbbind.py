@@ -1,6 +1,6 @@
 import argparse
 
-from hgcn_4_pls.utilities.scpdb_split import split
+from HGScore.utilities.scpdb_split import split
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

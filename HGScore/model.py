@@ -9,10 +9,10 @@ import torch.nn.functional as F
 import torch_geometric as pyg
 import torchmetrics.functional as tmf
 
-import hgcn_4_pls.plotters as plotters
-from hgcn_4_pls.casf.ranking_power import ranking_power
-from hgcn_4_pls.casf.scoring_power import scoring_power
-from hgcn_4_pls.networks.heterogeneous_afp import HGCN_4_PLS
+import HGScore.plotters as plotters
+from HGScore.casf.ranking_power import ranking_power
+from HGScore.casf.scoring_power import scoring_power
+from HGScore.networks.heterogeneous_afp import HGCN_4_PLS
 
 
 class Model(pl.LightningModule):

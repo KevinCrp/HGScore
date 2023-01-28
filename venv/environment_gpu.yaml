@@ -1,4 +1,4 @@
-name: conda_env_HGCN_4_PLS_gpu
+name: conda_env_HGScore_gpu
 channels:
 - conda-forge
 - pyg

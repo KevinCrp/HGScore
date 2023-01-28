@@ -1,5 +1,5 @@
-from hgcn_4_pls.data import clean_pdb
-from hgcn_4_pls.featurizer import (atom_degree_one_hot,
+from HGScore.data import clean_pdb
+from HGScore.featurizer import (atom_degree_one_hot,
                                    atom_hybridization_one_hot,
                                    atom_type_one_hot, featurize, is_pi,
                                    open_mol2, open_pdb)
