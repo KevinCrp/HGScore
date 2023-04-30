@@ -1,5 +1,8 @@
 # HGScore
 
+Find our paper : http://dx.doi.org/10.37349/eds.2023.00010
+
+
 ## *A Heterogeneous Graph Convolutional Network for Protein-Ligand Scoring*
 
 ![coverage badge](tests/badges/coverage.svg)
@@ -102,3 +105,18 @@ optional arguments:
   -extract_pocket_cutoff EXTRACT_POCKET_CUTOFF
                         Cutoff for pocket extraction (Defaults to 10.0A)
 ````
+
+Cite us : 
+```tex
+@article{10.37349/eds.2023.00010,
+  author = {Crampon, Kevin and Giorkallos, Alexis and Vigouroux, Xavier and Baud, Stephanie and Steffenel, Luiz Angelo},
+  doi = {10.37349/eds.2023.00010},
+  journal = {Exploration of Drug Science},
+  pages = {126--139},
+  title = {{Heterogeneous graph convolutional neural network for protein-ligand scoring}},
+  url = {https://www.explorationpub.com/Journals/eds/Article/100810},
+  volume = {1},
+  year = {2023},
+  number = {2}
+}
+```
