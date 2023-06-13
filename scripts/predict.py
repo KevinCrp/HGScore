@@ -31,12 +31,14 @@ def predict(protein_path: str,
     """
     if extract_pocket:
         prot_dir, prot_name = osp.split(protein_path)
-        pocket_path = osp.join(prot_dir, "bgpls_pocket_{}".format(prot_name))
+        pocket_path = osp.join(prot_dir, "hgscore_pocket_{}".format(prot_name))
         if not osp.isfile(pocket_path):
-            pocket_extraction(protein_path, ligand_path,
-                              pocket_path, pocket_cutoff)
+            pocket_ok = pocket_extraction(protein_path, ligand_path,
+                                          pocket_path, pocket_cutoff)
         protein_path = pocket_path
-
+    if not pocket_ok:
+        print('Error {} no pocket extracted, may be caused by a too far ligand'.format(protein_path))
+        sys.exit()
     if not osp.exists(protein_path):
         print('Error {} not found'.format(protein_path))
         sys.exit()
@@ -44,8 +46,8 @@ def predict(protein_path: str,
         print('Error {} not found'.format(ligand_path))
 
     het_graph = process_graph_from_files(protein_path,
-                                               ligand_path,
-                                               atomic_distance_cutoff=atomic_distance_cutoff)
+                                         ligand_path,
+                                         atomic_distance_cutoff=atomic_distance_cutoff)
     batch = pyg.data.Batch.from_data_list([het_graph])
 
     model = md.Model.load_from_checkpoint(model_path)

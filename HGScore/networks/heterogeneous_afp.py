@@ -205,10 +205,7 @@ class AFP_Hetero_Molecular(torch.nn.Module):
         return y_pa, y_la
 
 
-class HGCN_4_PLS(torch.nn.Module):
-    """The Heterogeneous Graph Convolutional neural Network for Protein-Ligand Scoring network
-    """
-
+class HGScore_NET(torch.nn.Module):
     def __init__(self,
                  list_hidden_channels_pa: List[int],
                  list_hidden_channels_la: List[int],

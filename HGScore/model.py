@@ -12,7 +12,7 @@ import torchmetrics.functional as tmf
 import HGScore.plotters as plotters
 from HGScore.casf.ranking_power import ranking_power
 from HGScore.casf.scoring_power import scoring_power
-from HGScore.networks.heterogeneous_afp import HGCN_4_PLS
+from HGScore.networks.heterogeneous_afp import HGScore_NET
 
 
 class Model(pl.LightningModule):
@@ -62,7 +62,7 @@ class Model(pl.LightningModule):
                           " config.ini")
             sys.exit()
         self.plot_path = plot_path
-        self.model = HGCN_4_PLS(list_hidden_channels_pa=hidden_channels_pa,
+        self.model = HGScore_NET(list_hidden_channels_pa=hidden_channels_pa,
                                 list_hidden_channels_la=hidden_channels_la,
                                 num_layers=num_layers,
                                 hetero_aggr=hetero_aggr,

@@ -28,15 +28,15 @@ def plot_linear_reg(p: torch.Tensor, t: torch.Tensor, pearson_r: float,
 
     lineplot = sns.lineplot(x=targets.numpy(), y=targets.numpy(),
                             color="orange",
-                            label="Ground Truth Linear Regression")
+                            label="Ground truth linear regression")
     regplot = sns.regplot(x=targets.numpy(), y=preds.numpy(), ci=95,
-                          label="Network output, linear Regression, y = {}x + {}".format(round(regr2.coef_[0][0], 2),
+                          label="Network output, linear regression, y = {}x + {}".format(round(regr2.coef_[0][0], 2),
                                                                                          round(regr2.intercept_[0], 2)))
-    regplot.set(xlabel='Targeted Scores',
-                ylabel='Predicted Scores')
+    regplot.set(xlabel='Targeted scores',
+                ylabel='Predicted scores')
     regplot.legend()
     fig_sns = regplot.get_figure()
-    fig_sns.savefig(filepath, dpi=400)
+    fig_sns.savefig(filepath, dpi=600)
     plt.close(fig_sns)
 
 

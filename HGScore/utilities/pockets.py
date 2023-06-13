@@ -69,16 +69,18 @@ def pocket_extraction(prot_path: str,
         res_coords = group[['x_coord', 'y_coord', 'z_coord']].to_numpy()
         if residue_close_to_ligand(ligand_coords, res_coords, cutoff=cutoff):
             list_df_in_site += [group]
+    if len(list_df_in_site) > 0:
+        df_site = pd.concat(list_df_in_site).reset_index(drop=True)
+        df_site['atom_number'] = [i+1 for i in range(df_site.shape[0])]
 
-    df_site = pd.concat(list_df_in_site).reset_index(drop=True)
-    df_site['atom_number'] = [i+1 for i in range(df_site.shape[0])]
+        now = datetime.datetime.now()
+        now_str = now.strftime('%Y-%m-%d %H:%M:%S')
+        ppdb_prot.df['OTHERS'].loc[0] = [
+            'REMARK', '    Extracted by K.CRAMPON on {}'.format(now_str), 0]
 
-    now = datetime.datetime.now()
-    now_str = now.strftime('%Y-%m-%d %H:%M:%S')
-    ppdb_prot.df['OTHERS'].loc[0] = [
-        'REMARK', '    Extracted by K.CRAMPON on {}'.format(now_str), 0]
-
-    ppdb_prot.df['ATOM'] = df_site
-    ppdb_prot.to_pdb(path=pocket_out_path,
-                     records=['OTHERS', 'ATOM'],
-                     append_newline=True)
+        ppdb_prot.df['ATOM'] = df_site
+        ppdb_prot.to_pdb(path=pocket_out_path,
+                        records=['OTHERS', 'ATOM'],
+                        append_newline=True)
+        return True
+    return False
