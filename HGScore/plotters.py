@@ -28,7 +28,7 @@ def plot_linear_reg(p: torch.Tensor, t: torch.Tensor, pearson_r: float,
 
     lineplot = sns.lineplot(x=targets.numpy(), y=targets.numpy(),
                             color="orange",
-                            label="Ground truth linear regression")
+                            label="Perfect predictor")
     regplot = sns.regplot(x=targets.numpy(), y=preds.numpy(), ci=95,
                           label="Network output, linear regression, y = {}x + {}".format(round(regr2.coef_[0][0], 2),
                                                                                          round(regr2.intercept_[0], 2)))
