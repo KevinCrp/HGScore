@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:1.12.0-cuda11.3-cudnn8-devel
+FROM pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime
 WORKDIR "/home"
 
 # Add missing Public Keys
@@ -18,16 +18,16 @@ RUN rm -rf /var/lib/apt/lists/*
 WORKDIR "/workspace"
 
 RUN conda install openbabel=3.1.1 -c conda-forge -y
-RUN conda install scikit-learn-intelex=2021.5.0 -y
-RUN conda install pandas=1.3.5 -y
+RUN conda install scikit-learn-intelex=2023.1.1 -y
+RUN conda install pandas=2.1.1 -y
 RUN conda install biopandas=0.4.1 -c conda-forge -y
-RUN conda install pyg=2.2.0 -c pyg -y
-RUN conda install pytorch-lightning=1.7.7 -c conda-forge -y
+RUN conda install pyg=2.4.0 -c pyg -y
+RUN conda install pytorch-lightning=2.1.0 -c conda-forge -y
 RUN conda install xorg-libxrender=0.9.10 -c conda-forge -y
 RUN conda install scipy=1.7.3 -c anaconda -y
-RUN conda install matplotlib=3.5.3 -c conda-forge -y
-RUN conda install oddt=0.7 -c conda-forge -y
-RUN conda install seaborn=0.12.1 -c conda-forge -y
+RUN conda install matplotlib=3.8.0 -c conda-forge -y
+RUN conda install seaborn=0.12.2 -c conda-forge -y
 
+RUN pip install oddt==0.7
 RUN pip install class-resolver==0.3.10
-RUN pip install pyg-lib -f https://data.pyg.org/whl/torch-1.12.0+cu113.html
+RUN pip install pyg-lib -f https://data.pyg.org/whl/torch-2.1.0+cu118.html

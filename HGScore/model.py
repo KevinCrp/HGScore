@@ -52,6 +52,9 @@ class Model(pl.LightningModule):
                 information for tensorboard. Defaults to ''.
         """
         super().__init__()
+        self.training_step_outputs = []
+        self.validation_step_outputs = []
+        self.test_step_outputs = []
         self.save_hyperparameters()
         if isinstance(hidden_channels_pa, int):
             hidden_channels_pa = num_layers * [hidden_channels_pa]
@@ -63,13 +66,13 @@ class Model(pl.LightningModule):
             sys.exit()
         self.plot_path = plot_path
         self.model = HGScore_NET(list_hidden_channels_pa=hidden_channels_pa,
-                                list_hidden_channels_la=hidden_channels_la,
-                                num_layers=num_layers,
-                                hetero_aggr=hetero_aggr,
-                                mlp_channels=mlp_channels,
-                                molecular_embedding_size=molecular_embedding_size,
-                                dropout=dropout,
-                                heads=heads)
+                                 list_hidden_channels_la=hidden_channels_la,
+                                 num_layers=num_layers,
+                                 hetero_aggr=hetero_aggr,
+                                 mlp_channels=mlp_channels,
+                                 molecular_embedding_size=molecular_embedding_size,
+                                 dropout=dropout,
+                                 heads=heads)
 
         self.loss_funct = F.mse_loss
         self.lr = lr
@@ -123,19 +126,18 @@ class Model(pl.LightningModule):
         return loss, y_pred.view(-1), batch.y
 
     def training_step(self, batch: pyg.data.HeteroData,
-                      batch_idx: int) -> Dict:
+                      batch_idx: int):
         """Training step
 
         Args:
             batch (pyg.data.HeteroData): A Batch
             batch_idx (int): The batch idx
-
-        Returns:
-            Dict: (loss, predicted score, real affinities)
         """
         loss, preds, targets = self._common_step(batch, batch_idx, 'train')
-        return {'loss': loss, 'train_preds': preds.detach(),
-                'train_targets': targets.detach()}
+        self.training_step_outputs.append({'loss': loss, 'train_preds': preds.detach(),
+                                           'train_targets': targets.detach()})
+        # return {'loss': loss, 'train_preds': preds.detach(),
+        #         'train_targets': targets.detach()}
 
     def validation_step(self, batch: pyg.data.HeteroData,
                         batch_idx: int) -> Dict:
@@ -149,8 +151,8 @@ class Model(pl.LightningModule):
             Dict: (loss, predicted score, real affinities)
         """
         loss, preds, targets = self._common_step(batch, batch_idx, 'val')
-        return {'val_loss': loss, 'val_preds': preds,
-                'val_targets': targets}
+        self.validation_step_outputs.append({'val_loss': loss, 'val_preds': preds,
+                                             'val_targets': targets})
 
     def test_step(self, batch: pyg.data.HeteroData, batch_idx: int) -> Dict:
         """Testing step
@@ -164,9 +166,9 @@ class Model(pl.LightningModule):
                 pdb_id)
         """
         loss, preds, targets = self._common_step(batch, batch_idx, 'test')
-        return {'test_loss': loss, 'test_preds': preds,
-                'test_targets': targets, 'test_cluster': batch.cluster,
-                'test_pdb_id': batch.pdb_id}
+        self.test_step_outputs.append({'test_loss': loss, 'test_preds': preds,
+                                       'test_targets': targets, 'test_cluster': batch.cluster,
+                                       'test_pdb_id': batch.pdb_id})
 
     def common_epoch_end(self, outputs: List, stage: str):
         """Called after each epoch (except test). CASF metrics are computed here
@@ -210,13 +212,14 @@ class Model(pl.LightningModule):
         elif version == '16':
             self.ranking_nb_in_clusters = 5
 
-    def test_epoch_end(self, outputs: List):
+    def on_test_epoch_end(self) -> None:
         """Called after each test epoch. CASF metrics are computed and
             plots created here
 
         Args:
             outputs (List): Outputs produced by test steps
         """
+        outputs = self.test_step_outputs
         avg_loss = torch.stack([x["test_loss"] for x in outputs]).mean()
         all_preds = torch.concat([x["test_preds"]
                                   for x in outputs])
@@ -270,11 +273,11 @@ class Model(pl.LightningModule):
         }
         self.log_dict(metrics_dict, sync_dist=True)
 
-    def validation_epoch_end(self, outputs: List):
-        self.common_epoch_end(outputs, 'val')
+    def on_validation_epoch_end(self):
+        self.common_epoch_end(self.validation_step_outputs, 'val')
 
-    def training_epoch_end(self, outputs: List):
-        self.common_epoch_end(outputs, 'train')
+    def on_train_epoch_end(self):
+        self.common_epoch_end(self.training_step_outputs, 'train')
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr,
