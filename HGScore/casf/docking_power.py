@@ -42,12 +42,12 @@ def docking_power_df(docking_power_df: pd.DataFrame,
         docking_power_df_pdb = docking_power_df.loc[docking_power_df['pdb_id'] == pdb]
         df_sorted = docking_power_df_pdb.sort_values(
             by=['score'], ascending=[False])
-        docking_results.loc[tmp]['Rank1'] = ''.join(df_sorted[0:1]['#code'])
-        docking_results.loc[tmp]['RMSD1'] = float(df_sorted[0:1]['rmsd'])
-        docking_results.loc[tmp]['Rank2'] = ''.join(df_sorted[1:2]['#code'])
-        docking_results.loc[tmp]['RMSD2'] = float(df_sorted[1:2]['rmsd'])
-        docking_results.loc[tmp]['Rank3'] = ''.join(df_sorted[2:3]['#code'])
-        docking_results.loc[tmp]['RMSD3'] = float(df_sorted[2:3]['rmsd'])
+        docking_results.loc[tmp]['Rank1'] = ''.join(df_sorted.iloc[0]['#code'])
+        docking_results.loc[tmp]['RMSD1'] = float(df_sorted.iloc[0]['rmsd'])
+        docking_results.loc[tmp]['Rank2'] = ''.join(df_sorted.iloc[1]['#code'])
+        docking_results.loc[tmp]['RMSD2'] = float(df_sorted.iloc[1]['rmsd'])
+        docking_results.loc[tmp]['Rank3'] = ''.join(df_sorted.iloc[2]['#code'])
+        docking_results.loc[tmp]['RMSD3'] = float(df_sorted.iloc[2]['rmsd'])
         docking_results.loc[tmp]['code'] = pdb
         tmp += 1
         for j in np.arange(1, nb_top):
@@ -62,8 +62,9 @@ def docking_power_df(docking_power_df: pd.DataFrame,
             varname2 = 'SP' + str(s)
             sp = locals()[varname2]
             if float(sptemp.shape[0]) >= 5:
+                df_for_spearman = sptemp[['rmsd', 'score']]
                 sp.loc[pdb]['spearman'] = np.negative(
-                    sptemp.corr('spearman')['rmsd']['score'])
+                    df_for_spearman.corr(method='spearman')['rmsd']['score'])
             else:
                 continue
 

@@ -23,6 +23,7 @@ PATH_TO_LIGAND_MOL2 = 'tests/data/raw/4llx/4llx_ligand.mol2'
 PATH_TO_CUSTOM_POCKET = 'tests/data/raw/4llx/4llx_own_pocket.pdb'
 PATH_PL_LOGS = "tests"
 
+
 def test_model_init_with_list():
     with open(MODEL_HPARAM_PATH, 'r') as f_yaml:
         model_parameters = yaml.safe_load(f_yaml)
@@ -45,6 +46,7 @@ def test_model_init_with_list():
     assert nb_param_trainable == 1177091
     nb_param = model.get_nb_parameters(only_trainable=False)
     assert nb_param == 1177091
+
 
 def test_model_init_with_int():
     with open(MODEL_HPARAM_PATH, 'r') as f_yaml:
@@ -75,10 +77,8 @@ def test_model_predict_from_pocket():
                                                PATH_TO_LIGAND_MOL2,
                                                atomic_distance_cutoff=ATM_CUTOFF)
     batch = pyg.data.Batch.from_data_list([bipartite_graph])
-
     model = md.Model.load_from_checkpoint(MODEL_PATH)
-
-    score = model.predict(batch)
+    score = model.predict(batch.to(model.device))
     assert round(score, 2) == 4.21
 
 
@@ -92,9 +92,8 @@ def test_model_forward_predict_from_protein():
 
     model = md.Model.load_from_checkpoint(MODEL_PATH)
 
-    score = model.predict(batch)
+    score = model.predict(batch.to(model.device))
     assert round(score, 2) == 5.21
-
 
 
 def test_training_gpu():
@@ -102,7 +101,8 @@ def test_training_gpu():
     use_gpu = gpus > 0
     if use_gpu:
         accelerator = 'gpu' if use_gpu else None
-        strategy = DDPStrategy(find_unused_parameters=False) if use_gpu else None
+        strategy = DDPStrategy(
+            find_unused_parameters=False) if use_gpu else None
         devices = gpus if gpus > 0 else None
         tb_logger = pl_loggers.TensorBoardLogger(save_dir=PATH_PL_LOGS+'/')
         with open(MODEL_HPARAM_PATH, 'r') as f_yaml:
@@ -139,6 +139,7 @@ def test_training_gpu():
 
         trainer.fit(model, datamodule)
 
+
 def test_training_cpu():
     tb_logger = pl_loggers.TensorBoardLogger(save_dir=PATH_PL_LOGS+'/')
     with open(MODEL_HPARAM_PATH, 'r') as f_yaml:
@@ -168,7 +169,6 @@ def test_training_cpu():
                          log_every_n_steps=1,
                          num_sanity_val_steps=0,
                          logger=tb_logger
-                        )
+                         )
 
     trainer.fit(model, datamodule)
-        
