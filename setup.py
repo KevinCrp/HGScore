@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='HGScore',
-    version='1.1',
+    version='1.1.0',
     description='A Heterogeneous Graph Convolutional Neural Network to score a protein-ligand complex.',
     author='Kevin Crampon',
     author_email='kevin.crampon@univ-reims.fr',
