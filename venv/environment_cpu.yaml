@@ -6,6 +6,7 @@ channels:
 - defaults
 dependencies:
 - python=3.10
+- pip=23.3.1
 - numpy=1.24.3
 - scipy=1.7.3
 - pytorch=2.1.0=py3.10_cpu_0
