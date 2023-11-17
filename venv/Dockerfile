@@ -23,9 +23,9 @@ RUN pip install scipy==1.7.3
 RUN pip install scikit-learn-intelex==2023.1.1
 RUN pip install pandas==2.1.1
 RUN pip install biopandas==0.4.1
-RUN pip install pip install torch_geometric==2.4.0
+RUN pip install torch_geometric==2.4.0
 RUN pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.1.0+cu118.html
-RUN pip install pip install lightning==2.1.0
+RUN pip install lightning==2.1.0
 RUN pip install matplotlib==3.8.0
 RUN pip install seaborn==0.12.2
 RUN pip install oddt==0.7
